@@ -1,12 +1,18 @@
 {% extends 'base.html' %}
 {% load i18n %}
-{% block title %}{% trans "Customize_Stack" %}{% endblock %}
+{% block title %}{% trans "Customize Stack" %}{% endblock %}
 
 {% block page_header %}
-  {% include "horizon/common/_page_header.html" with title=_("Customize_Stack") %}
+  {% include "horizon/common/_page_header.html" with title=_("Customize Stack") %}
 {% endblock page_header %}
 
 {% block main %}
+<noscript>
+{% trans "This pane needs javascript support." %}
+</noscript>
+<div class="topologyNavi">
+  <a href="{% url 'horizon:project:customize_stack:select_resource' %}" id="cus_stack__action_add" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-plus"></span>{% trans " Add Resource"%}</a>
+  <a href="{% url 'horizon:project:network_topology:launchinstance' %}" id="cus_stack__action_launch" class="btn btn-default btn-sm btn-launch ajax-modal"><span class="fa fa-cloud-upload"></span>{% trans " Lauch Stack"%}</a>
+</div>
 {% endblock %}
-
 
