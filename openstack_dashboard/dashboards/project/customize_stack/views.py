@@ -27,7 +27,21 @@ class IndexView(views.APIView):
     template_name = 'project/customize_stack/index.html'
 
     def get_data(self, request, context, *args, **kwargs):
-        # Add data to the context here...
+        context = {}
+        d3_data = {}
+        stack = {
+            'name': "customize stack",
+            'image': "/static/dashboard/img/stack-green.svg",
+            'image_size': 60,
+            'image_x': -30,
+            'image_y': -30,
+            'text_x': 40,
+            'text_y': ".35em",
+            'info_box': "<img src=\"/static/dashboard/img/stack-green.svg\" width=\"35px\" height=\"35px\" />\n<div id=\"stack_info\">\n    <h3>customize stack</h3>\n    <p class=\"error\">Create your own stack</p>\n</div>\n<div class=\"clear\"></div>\n\n\n    \n\n"
+        }
+        d3_data['nodes'] = []
+        d3_data['stack'] = stack
+        context['d3_data'] = json.dumps(d3_data)
         return context
 
 class SelectResourceView(forms.ModalFormView):
