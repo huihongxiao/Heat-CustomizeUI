@@ -3,6 +3,7 @@ import logging
 
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.debug import sensitive_variables  # noqa
+from django.http import HttpResponse  # noqa
 
 from oslo_utils import strutils
 import six
@@ -16,6 +17,8 @@ from openstack_dashboard.dashboards.project.images \
     import utils as image_utils
 from openstack_dashboard.dashboards.project.instances \
     import utils as instance_utils
+from openstack_dashboard.dashboards.project.customize_stack \
+    import api as project_api
 
 
 LOG = logging.getLogger(__name__)
@@ -63,7 +66,7 @@ class SelectResourceForm(forms.SelfHandlingForm):
 
     def handle(self, request, data):
         kwargs = self._get_resource_type(self.request, data.get('resource_type'))
-        
+        kwargs['resource_type'] = data.get('resource_type') 
         # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
         # request so that we can chain it as an input to the next view...
         # but hey, it totally works.
@@ -73,7 +76,12 @@ class SelectResourceForm(forms.SelfHandlingForm):
 
 
 class ModifyResourceForm(forms.SelfHandlingForm):
-    param_prefix = '__param_'
+    param_prefix = ''
+
+    parameters = forms.CharField(
+        widget=forms.widgets.HiddenInput)
+    resource_type = forms.CharField(
+        widget=forms.widgets.HiddenInput)
 
     class Meta(object):
         name = _('Modify Resource Properties')
@@ -81,22 +89,27 @@ class ModifyResourceForm(forms.SelfHandlingForm):
 
     def __init__(self, *args, **kwargs):
         parameters = kwargs.pop('parameters')
+        self.next_view = kwargs.pop('next_view')
         super(ModifyResourceForm, self).__init__(*args, **kwargs)
-        LOG.info('Resource Parameters %s' % parameters)
+        LOG.info('Original Resource Parameters %s' % parameters)
         self._build_parameter_fields(parameters)
 
     def _build_parameter_fields(self, params):
         params_in_order = sorted(params.items())
-        for param_key, param in params_in_order:
+	for param_key, param in params_in_order:
+
+            if param_key == 'resource_type':
+                self.fields['resource_type'].initial = param
+                continue
+           
             field = None
             field_key = self.param_prefix + param_key
             field_args = {
                 'initial': param.get('Default', None),
                 'label': param.get('Label', param_key),
-                'help_text': param.get('Description', ''),
-                'required': param.get('Default', None) is None
+                'help_text': param.get('Description', '')                
+#                'required': param.get('Default', None) is Nione
             }
-
             param_type = param.get('Type', None)
             hidden = strutils.bool_from_string(param.get('NoEcho', 'false'))
             if 'CustomConstraint' in param:
@@ -141,4 +154,11 @@ class ModifyResourceForm(forms.SelfHandlingForm):
                 self.fields[field_key] = field
 
     def handle(self, request, data):
-        pass
+        data.pop('parameters')
+        LOG.info('Finalized Resource Parameters %s' % data)
+        project_api.add_resource_to_draft(data)
+        # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
+        # request so that we can chain it as an input to the next view...
+        # but hey, it totally works.
+        request.method = 'GET'
+        return self.next_view.as_view()(request, resource_details = data)

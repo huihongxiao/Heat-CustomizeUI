@@ -1,0 +1,22 @@
+{% extends "horizon/common/_modal.html" %}
+{% load i18n %}
+{% load url from future %}
+
+{% block modal-header %}{% trans "Resource Preview" %}{% endblock %}
+
+{% block modal-body %}
+<div class="row-fluid stack-preview detail">
+<form>
+  <dl class="dl-horizontal">
+    {% for key, value in resource_details.items %}
+        <dt>{{ key }}</dt>
+        <dd>{{ value }}</dd>
+    {% endfor %}
+  </dl>
+</form>
+</div>
+{% endblock %}
+
+{% block modal-footer %}
+  <a href="{% url 'horizon:project:access_and_security:index' %}" class="btn btn-default secondary cancel close">{% trans "Close" %}</a>
+{% endblock %}

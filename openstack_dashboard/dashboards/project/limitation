@@ -1,0 +1,4 @@
+Only one set of draft template could exisit. That is, 2 browser use one horizon, can not use the new ui together.
+
+Need to have a dir for apache user/group to write file.
+

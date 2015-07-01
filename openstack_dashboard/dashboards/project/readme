@@ -1,1 +1,5 @@
+2015.06.24
 Add this panel unser OrchestrationPanels in dashboard.py
+
+2015.06.29
+Modify "from openstack_dashboard import api" to add "api.heat.resource_type_generate_template"
