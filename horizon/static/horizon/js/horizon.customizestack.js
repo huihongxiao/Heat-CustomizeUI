@@ -21,6 +21,7 @@
  */
 
 var container = "#heat_topology";
+var node_selected = false;
 
 function update(){
   node = node.data(nodes, function(d) { return d.name; });
@@ -47,10 +48,30 @@ function update(){
   link.exit().remove();
   //Setup click action for all nodes
   node.on("mouseover", function(d) {
-    $("#info_box").html(d.info_box);
+    var icon;
+    if(!node_selected) {
+      icon = $('<img/>');
+      icon.attr('src', d.image);
+      $("#node_icon").html(icon);
+      $("#node_info").html(d.info_box);
+    }
   });
   node.on("mouseout", function() {
-    $("#info_box").html('');
+  	if(!node_selected) {
+	  $("#node_icon").html('');
+      $("#node_info").html('');
+    }
+  });
+  node.on("click", function(d) {
+    $("#detail_box").addClass('selected_detail_box');
+    icon = $('<img/>');
+    icon.attr('src', d.image);
+    $('#node_icon').html(icon);
+    $('#node_info').html(d.info_box);
+	$('#opt_bar').show();
+	$('#cus_stack_action_delete').attr('href',"/project/customize_stack/select_resource");
+    node_selected = true;
+    d3.event.stopPropagation()
   });
 
   force.start();
@@ -169,11 +190,6 @@ function build_reverse_links(node){
 function ajax_poll(poll_time){
   setTimeout(function() {
     $.getJSON(ajax_url, function(json) {
-      //update d3 data element
-      $("#d3_data").attr("data-d3_data", JSON.stringify(json));
-
-      //update stack
-      $("#stack_box").html(json.stack.info_box);
       needs_update = false;
 
       //Check Remove nodes
@@ -233,9 +249,18 @@ if ($(container).length){
   var width = $(container).width(),
     height = 500,
     ajax_url = '/project/customize_stack/get_draft_template_data',
-    graph = $("#d3_data").data("d3_data");
-    graph.nodes = [];
-    var force = d3.layout.force()
+    graph;
+  $('#opt_bar').hide();
+	$.ajax({  
+        url: ajax_url,  
+        type: 'GET',  
+        dataType: 'json',  
+        async: false,  
+        success: function(json) {
+	      graph = json;
+	    }
+    });  
+  var force = d3.layout.force()
       .nodes(graph.nodes)
       .links([])
       .gravity(0.1)
@@ -251,13 +276,17 @@ if ($(container).length){
     needs_update = false,
     nodes = force.nodes(),
     links = force.links();
+    
+  svg.on("click", function() {
+    $("#detail_box").removeClass('selected_detail_box');
+    node_selected = false;
+	$("#node_icon").html('');
+    $("#node_info").html('');
+    $('#opt_bar').hide();
+  });
 
   build_links();
   update();
-
-  //Load initial Stack box
-  $("#stack_box").html(graph.stack.info_box);
-  //On Page load, set Action In Progress
 
   //If status is In Progress, start AJAX polling
   var poll_time = 3000;
