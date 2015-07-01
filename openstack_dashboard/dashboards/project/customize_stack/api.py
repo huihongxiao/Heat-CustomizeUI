@@ -60,12 +60,12 @@ def get_draft_template():
     d3_data['stack'] = stack_node
 
     if resources:
-        for resource_folk in resources:
+        for idx, resource_folk in enumerate(resources):
             resource = Resource()
             resource.resource_type = resource_folk['resource_type']
             resource.resource_status = 'INIT'
             resource.resource_status_reason = 'INIT'
-            resource.resource_name = ''
+            resource.resource_name = idx
             resource.required_by = ''
             resource_image = mappings.get_resource_image(
                 resource.resource_status,

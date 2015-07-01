@@ -232,7 +232,7 @@ function ajax_poll(poll_time){
 if ($(container).length){
   var width = $(container).width(),
     height = 500,
-    ajax_url = '/project/stacks/get_d3_data/',
+    ajax_url = '/project/customize_stack/get_draft_template_data',
     graph = $("#d3_data").data("d3_data");
     graph.nodes = [];
     var force = d3.layout.force()
@@ -261,5 +261,5 @@ if ($(container).length){
 
   //If status is In Progress, start AJAX polling
   var poll_time = 3000;
-  //ajax_poll(poll_time);
+  ajax_poll(poll_time);
 }
