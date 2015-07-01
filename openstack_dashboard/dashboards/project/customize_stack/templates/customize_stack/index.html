@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load i18n %}
+{% load i18n sizeformat %}
 {% block title %}{% trans "Customize Stack" %}{% endblock %}
 
 {% block page_header %}
@@ -13,6 +14,13 @@
 <div class="topologyNavi">
   <a href="{% url 'horizon:project:customize_stack:select_resource' %}" id="cus_stack__action_add" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-plus"></span>{% trans " Add Resource"%}</a>
   <a href="{% url 'horizon:project:network_topology:launchinstance' %}" id="cus_stack__action_launch" class="btn btn-default btn-sm btn-launch ajax-modal"><span class="fa fa-cloud-upload"></span>{% trans " Lauch Stack"%}</a>
+</div>
+<div id="resource_container">
+    <div id="info_box"></div>
+    <div id="stack_box"></div>
+    <div id="heat_topology"></div>
+    <div id="stack_id" data-stack_id="{{ stack_id }}"></div>
+    <div id="d3_data" data-d3_data="{{ d3_data }}"></div>
 </div>
 {% endblock %}
 
