@@ -41,6 +41,13 @@ def _get_resources_from_file():
         resources = []
     return resources
 
+def get_resource_names():
+    resource_names = []
+    resources = _get_resources_from_file()
+    for resource in resources:
+        resource_names.append(resource['resource_name'])
+    return resource_names
+
 def get_draft_template():
     resources = _get_resources_from_file()
     d3_data = {"nodes": [], "stack": {}}
@@ -66,13 +73,13 @@ def get_draft_template():
     d3_data['stack'] = stack_node
 
     if resources:
-        for idx, resource_folk in enumerate(resources):
+        for resource_folk in resources:
             resource = Resource()
             resource.resource_type = resource_folk['resource_type']
             resource.resource_status = 'INIT'
             resource.resource_status_reason = 'INIT'
-            resource.resource_name = idx
-            resource.required_by = ''
+            resource.resource_name = resource_folk['resource_name']
+            resource.required_by = [resource_folk['depends_on']]
             resource_image = mappings.get_resource_image(
                 resource.resource_status,
                 resource.resource_type)

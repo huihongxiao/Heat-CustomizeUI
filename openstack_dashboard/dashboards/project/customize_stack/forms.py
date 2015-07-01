@@ -31,6 +31,7 @@ class SelectResourceForm(forms.SelfHandlingForm):
 
     resource_type = forms.ChoiceField(label=_("Resource Type"),
                                     help_text=_("Select the type of resource to add"))
+    resource_type_show = ["OS::Nova::Server", "OS::Cinder::Volume", "OS::Cinder::VolumeAttachment", "OS::Heat::SoftwareConfig", "OS::Heat::SoftwareDeployment"]
 
     def __init__(self, *args, **kwargs):
         self.next_view = kwargs.pop('next_view')
@@ -41,7 +42,8 @@ class SelectResourceForm(forms.SelfHandlingForm):
     def get_resource_type_choices(self, request):
         resource_type_choices = [('', _("Select a resource type"))]
         for resource_type in self._get_resource_types(request):
-            resource_type_choices.append((resource_type.resource_type, resource_type.resource_type))
+            if (resource_type.resource_type in self.resource_type_show):
+                resource_type_choices.append((resource_type.resource_type, resource_type.resource_type))
         return sorted(resource_type_choices, key=lambda item: item[0])
 
     def _get_resource_types(self, request):
@@ -83,6 +85,26 @@ class ModifyResourceForm(forms.SelfHandlingForm):
     resource_type = forms.CharField(
         widget=forms.widgets.HiddenInput)
 
+    resource_name = forms.RegexField(
+        max_length=255,
+        label=_('Resource Name'),
+        help_text=_('Name of the resource to create.'),
+        regex=r"^[a-zA-Z][a-zA-Z0-9_.-]*$",
+        error_messages={'invalid':
+                        _('Name must start with a letter and may '
+                          'only contain letters, numbers, underscores, '
+                          'periods and hyphens.')})
+    depends_on = forms.ChoiceField(label=_('Select the resource to depend on'),
+                     required=False)
+
+    properties_show = {
+        "OS::Nova::Server": ['image', 'flavor', 'networks', 'user_data'],
+        "OS::Cinder::Volume": ['size'],
+        "OS::Cinder::VolumeAttachment": ['instance_uuid', 'mountpoint'],
+        "OS::Heat::SoftwareConfig": ['config'],
+        "OS::Heat::SoftwareDeployment": ['config', 'server']
+    }
+
     class Meta(object):
         name = _('Modify Resource Properties')
 
@@ -91,17 +113,25 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         parameters = kwargs.pop('parameters')
         self.next_view = kwargs.pop('next_view')
         super(ModifyResourceForm, self).__init__(*args, **kwargs)
+        resource_names = project_api.get_resource_names()
+        resource_name_choice = []
+        for resource_name in resource_names:
+            resource_name_choice.append((resource_name, resource_name))
+        self.fields['depends_on'].choices = (resource_name_choice)
         LOG.info('Original Resource Parameters %s' % parameters)
         self._build_parameter_fields(parameters)
 
     def _build_parameter_fields(self, params):
+        filter_parameters = self.properties_show[params['resource_type']]
         params_in_order = sorted(params.items())
 	for param_key, param in params_in_order:
 
             if param_key == 'resource_type':
                 self.fields['resource_type'].initial = param
                 continue
-           
+            if not param_key in filter_parameters:
+                continue
+
             field = None
             field_key = self.param_prefix + param_key
             field_args = {
