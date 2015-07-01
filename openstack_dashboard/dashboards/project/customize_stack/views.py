@@ -50,6 +50,7 @@ class IndexView(views.APIView):
         d3_data['nodes'] = []
         d3_data['stack'] = stack
         context['d3_data'] = json.dumps(d3_data)
+        # Add data to the context here...
         return context
 
 class SelectResourceView(forms.ModalFormView):
@@ -103,6 +104,16 @@ class PreviewResourceDetailsView(forms.ModalFormMixin, views.HorizonTemplateView
         context['resource_details'] = self.kwargs['resource_details']
         return context
 
+class LaunchStackView(forms.ModalFormView):
+    template_name = 'project/customize_stack/launch.html'
+    modal_header = _("Launch Stack")
+    form_id = "launch_stack"
+    form_class = project_forms.LaunchStackForm
+    submit_label = _("Launch")
+    submit_url = reverse_lazy("horizon:project:customize_stack:launch_stack")
+    success_url = reverse_lazy('horizon:project:stacks:index')
+#    success_url = reverse_lazy('horizon:project:stacks:index')
+    page_title = _("Launch Stack")
 
 class JSONView(django.views.generic.View):
     def get(self, request):

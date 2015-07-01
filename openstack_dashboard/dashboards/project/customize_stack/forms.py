@@ -192,3 +192,31 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         # but hey, it totally works.
         request.method = 'GET'
         return self.next_view.as_view()(request, resource_details = data)
+
+class LaunchStackForm(forms.SelfHandlingForm):
+    stack_name = forms.RegexField(
+        max_length=255,
+        label=_('Stack Name'),
+        help_text=_('Name of the stack to create.'),
+        regex=r"^[a-zA-Z][a-zA-Z0-9_.-]*$",
+        error_messages={'invalid':
+                        _('Name must start with a letter and may '
+                          'only contain letters, numbers, underscores, '
+                          'periods and hyphens.')})
+
+    timeout_mins = forms.IntegerField(
+        initial=60,
+        label=_('Creation Timeout (minutes)'),
+        help_text=_('Stack creation timeout in minutes.'))
+    enable_rollback = forms.BooleanField(
+        label=_('Rollback On Failure'),
+        help_text=_('Enable rollback on create/update failure.'),
+        required=False)
+
+    class Meta(object):
+        name = _('Modify Resource Properties')
+
+
+    def handle(self, request, data):
+        project_api.launch_stack(request, data.get('stack_name'), data.get('enable_rollback'), data.get('timeout_mins'))
+        return True

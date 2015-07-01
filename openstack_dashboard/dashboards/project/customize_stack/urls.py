@@ -10,4 +10,5 @@ urlpatterns = patterns(
     url(r'^select_resource$', views.SelectResourceView.as_view(), name='select_resource'),
     url(r'^modify_resource$', views.ModifyResourceView.as_view(), name='modify_resource'),
     url(r'^get_draft_template_data$', views.JSONView.as_view(), name='draft_template_data'),
+    url(r'^launch_stack$', views.LaunchStackView.as_view(), name='launch_stack')
 )
