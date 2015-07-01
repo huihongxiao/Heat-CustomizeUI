@@ -5,8 +5,14 @@ import os
 import pickle
 import re
 
+from openstack_dashboard.api import heat
 from openstack_dashboard.dashboards.project.stacks import mappings
 from openstack_dashboard.dashboards.project.stacks import sro
+
+from django.utils.translation import ugettext_lazy as _
+from horizon import exceptions
+from horizon import messages
+
 
 file_path = "/etc/openstack-dashboard/cstack.data"
 LOG = logging.getLogger(__name__)
@@ -97,4 +103,50 @@ def add_resource_to_draft(resource):
 def del_resource_from_draft():
     pass
 
-        
+
+def _generate_template(resources):
+    template = {
+        'heat_template_version': '2013-05-23',
+        'resources': {},
+    }
+    temp_res = template['resources']
+    for resource in resources:
+        res_name = resource.get('resource_name')
+        del resource['resource_name']
+        temp_res[res_name] = {}
+        temp_res[res_name]['properties'] = {}
+
+        res_type = resource.get('resource_type')
+        del resource['resource_type']
+        temp_res[res_name]['type'] = res_type
+
+        dependson = resource.get('depends_on')
+        if dependson:
+            del resource['depends_on']
+            temp_res[res_name]['depends_on'] = dependson
+
+        for key, value in resource.items():
+            if value:
+                temp_res[res_name]['properties'][key] = value
+
+    return json.loads(json.dumps(template))
+
+
+def launch_stack(request, stack_name, enable_rollback, timeout):
+    resources = _get_resources_from_file()
+    template = _generate_template(resources)
+    fields = {
+            'stack_name': stack_name,
+            'timeout_mins': timeout,
+            'disable_rollback': not(enable_rollback),
+            'password': None,
+            'template_data': template
+        }
+
+    try:
+        heat.stack_create(request, **fields)
+        messages.success(request, _("Stack creation started."))
+        return True
+    except Exception:
+        exceptions.handle(request)
+
