@@ -114,7 +114,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         self.next_view = kwargs.pop('next_view')
         super(ModifyResourceForm, self).__init__(*args, **kwargs)
         resource_names = project_api.get_resource_names()
-        resource_name_choice = []
+        resource_name_choice = [("", "")]
         for resource_name in resource_names:
             resource_name_choice.append((resource_name, resource_name))
         self.fields['depends_on'].choices = (resource_name_choice)

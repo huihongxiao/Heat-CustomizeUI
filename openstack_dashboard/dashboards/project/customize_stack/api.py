@@ -4,6 +4,7 @@ import logging
 import os
 import pickle
 import re
+import threading
 
 from openstack_dashboard.api import heat
 from openstack_dashboard.dashboards.project.stacks import mappings
@@ -16,6 +17,7 @@ from horizon import messages
 
 file_path = "/etc/openstack-dashboard/cstack.data"
 LOG = logging.getLogger(__name__)
+mutex = threading.Lock()
 
 class Stack(object):
     pass
@@ -25,19 +27,23 @@ class Resource(object):
 
 def ini_draft_template_file():
     if os.path.isfile(file_path):
-        LOG.error('Clear the draft template.')
-        f = open(file_path, 'wb')
-        pickle.dump([], f)
-        f.close()
+        if mutex.acquire():
+            LOG.info('Clear the draft template.')
+            f = open(file_path, 'wb')
+            pickle.dump([], f)
+            f.close()
+            mutex.release()
 
 def _get_resources_from_file():
     if os.path.isfile(file_path):
-        f = open(file_path, 'rb')
-        resources = pickle.load(f)
-        LOG.error('Exsisting resources are %s' % resources)
-        f.close()
+        if mutex.acquire():
+            f = open(file_path, 'rb')
+            resources = pickle.load(f)
+            LOG.info('Exsisting resources are %s' % resources)
+            f.close()
+            mutex.release()
     else:
-        LOG.error('Could not find draft template file %s' % file_path)
+        LOG.info('Could not find draft template file %s' % file_path)
         resources = []
     return resources
 
@@ -76,8 +82,8 @@ def get_draft_template():
         for resource_folk in resources:
             resource = Resource()
             resource.resource_type = resource_folk['resource_type']
-            resource.resource_status = 'INIT'
-            resource.resource_status_reason = 'INIT'
+            resource.resource_status = 'COMPLETE'
+            resource.resource_status_reason = 'COMPLETE'
             resource.resource_name = resource_folk['resource_name']
             resource.required_by = [resource_folk['depends_on']]
             resource_image = mappings.get_resource_image(
@@ -102,10 +108,12 @@ def get_draft_template():
 
 def add_resource_to_draft(resource):
     resources = _get_resources_from_file()
-    f = open(file_path, 'wb')
-    resources.append(resource)
-    pickle.dump(resources, f)
-    f.close()
+    if mutex.acquire():
+        f = open(file_path, 'wb')
+        resources.append(resource)
+        pickle.dump(resources, f)
+        f.close()
+        mutex.release()
 
 def del_resource_from_draft():
     pass
