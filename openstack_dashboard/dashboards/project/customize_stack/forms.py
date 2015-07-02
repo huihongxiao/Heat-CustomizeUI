@@ -186,6 +186,8 @@ class ModifyResourceForm(forms.SelfHandlingForm):
     def handle(self, request, data):
         data.pop('parameters')
         LOG.info('Finalized Resource Parameters %s' % data)
+        if data['resource_type'] == 'OS::Nova::Server':
+            data['networks'] = [{'network': data['networks']}]
         project_api.add_resource_to_draft(data)
         # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
         # request so that we can chain it as an input to the next view...

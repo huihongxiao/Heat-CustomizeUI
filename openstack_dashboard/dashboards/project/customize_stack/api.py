@@ -155,7 +155,7 @@ def launch_stack(request, stack_name, enable_rollback, timeout):
             'timeout_mins': timeout,
             'disable_rollback': not(enable_rollback),
             'password': None,
-            'template_data': template
+            'template': template
         }
 
     try:
