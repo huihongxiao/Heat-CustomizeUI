@@ -1,3 +1,7 @@
+// Pure CSS Vendor
+@import "/horizon/lib/bootstrap_datepicker/datepicker3.css";
+@import "/horizon/lib/rickshaw.css";
+
 // Custom Theme Variables
 @import "/custom/variables";
 
@@ -10,7 +14,6 @@
 // Vendor Components
 @import "/bootstrap/scss/bootstrap";
 @import "/horizon/lib/font-awesome/scss/font-awesome.scss";
-@import "/horizon/lib/magic_search/magic_search.scss";
 
 // Dashboard Components
 @import "splash";
@@ -21,8 +24,9 @@
 @import "components/charts";
 @import "components/workflow";
 @import "components/network_topology";
-@import "/framework/framework";
+@import "/angular/styles";
 
+@import "/horizon/lib/magic_search/magic_search.scss";
 
 /* new clearfix */
 .clearfix:after {
@@ -215,11 +219,6 @@ a.current_item:hover h4 {
   font-size: 11px;
   text-transform: uppercase;
   padding: 0 0 0 1px;
-}
-
-.table_wrapper > form.wait,
-.table_wrapper > form.wait * {
-  cursor: wait !important;
 }
 
 .table-bordered {
@@ -619,11 +618,6 @@ td.loading {
 
 
 /* Forms */
-
-.datepicker {
-  z-index: $zindex-popover !important;
-}
-
 .datepicker input{
   @extend .form-control;
 }
@@ -968,7 +962,6 @@ tr.terminated {
         &:hover,
         &:focus {
           border-color: $nav-tabs-border-color $nav-tabs-border-color #fff;
-          outline: none;
         }
       }
     }
@@ -1011,7 +1004,6 @@ tr.terminated {
 /* Fix tooltip z-index to show above modals. Bootstrap bug 582*/
 .tooltip {
   z-index: 12000;
-  word-wrap: break-word;
 }
 
 .volume_boot_disclosure {
@@ -1137,13 +1129,6 @@ iframe {
 .quota-dynamic {
   overflow: hidden;
   margin-bottom: 8px;
-}
-
-.quota-heading {
-  font-family: anivers;
-  font-weight: normal;
-  font-size: 24px;
-  margin-bottom: 10px;
 }
 
 .quota_title {
@@ -1353,53 +1338,30 @@ label.log-length {
       display: block;
     }
     ul.btn-group {
-      margin-left:0;
-      padding: $members-list-padding;
-      margin-bottom: 0;
-      border: $members-list-border;
+      margin-left:0px;
+      padding: 3px;
+      margin-bottom: 0px;
+      border: 1px solid $gray-light;
       border-bottom: none;
       &.last_stripe {
         border-bottom: 1px solid $table-border-color;
       }
       &.light_stripe {
-        background-color: $table-bg;
+        background-color: white;
       }
       &.dark_stripe {
-        background-color: $table-bg-accent;
+        background-color: $table-bg-odd;
       }
       &:hover {
         background-color: $border-color;
+      }
+      li.member {
+        padding: 6px 10px 5px 10px;
       }
       li.active {
         float: right;
         a:hover {
           background-color: $link-hover-color;
-        }
-      }
-      .member,
-      .role_options .roles_display {
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .member {
-        padding: $nav-link-padding;
-        padding-right: 0;
-        padding-left: $padding-base-vertical;
-        max-width: $members-list-item-width;
-      }
-      .role_options {
-        margin-left: 0;
-        & > a {
-          padding: nth($nav-link-padding, 1) $padding-small-horizontal;
-          .roles_display {
-            display: inline-block;
-            max-width: $members-list-roles-width;
-            line-height: 1;
-            padding-right: $padding-base-vertical;
-          }
-        }
-        .role_dropdown > li {
-          word-break: break-all;
         }
       }
     }
@@ -1491,6 +1453,74 @@ label.log-length {
   width: 275px;
   margin-right: 2px;
 }
+
+/**** Customize Stack CSS ****/
+#heat_topology {
+  background: rgba(102, 255, 104, 0.21);
+}
+
+#detail_box {
+  position: absolute;
+  width: 200px;
+  height: 485px;
+  top: 10px;
+  left: 10px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent;
+}
+
+#detail_box.selected_detail_box{
+  border-color: #dedede;
+  -moz-border-radius: 15px;      /* Gecko browsers */
+  -webkit-border-radius: 15px;   /* Webkit browsers */
+  border-radius:15px;            /* W3C syntax */
+}
+
+#node_icon {
+  position: absolute;
+  width: 200px;
+  top: 10px;
+  left: 10px;
+}
+#node_icon img {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  left: 50px;
+}
+
+#node_info {
+  position: absolute;
+  width: 200px;
+  top: 70px;
+  left: 10px;
+}
+#node_info h3 {
+  font-size: 9pt;
+  line-height: 20px;
+}
+#node_info p {
+  margin: 0;
+  font-size: 9pt;
+  line-height: 14px;
+}
+#node_info a {
+  margin: 0;
+  font-size: 9pt;
+  line-height: 14px;
+}
+#node_info .error {
+  color: darken($brand-danger, 20%);
+}
+
+#opt_bar {
+  position: absolute;
+  width: 200px;
+  top: 430px;
+  left: 29px;
+}
+
 
 /* Styling for draged network object */
 #networkListSortContainer {
@@ -1664,73 +1694,6 @@ label.log-length {
 }
 #info_box .error {
   color: darken($brand-danger, 20%);
-}
-
-/**** Customize Stack CSS ****/
-#heat_topology {
-  background: rgba(102, 255, 104, 0.21);
-}
-
-#detail_box {
-  position: absolute;
-  width: 200px;
-  height: 485px;
-  top: 10px;
-  left: 10px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: transparent;
-}
-
-#detail_box.selected_detail_box{
-  border-color: #dedede;
-  -moz-border-radius: 15px;      /* Gecko browsers */
-  -webkit-border-radius: 15px;   /* Webkit browsers */
-  border-radius:15px;            /* W3C syntax */
-}
-
-#node_icon {
-  position: absolute;
-  width: 200px;
-  top: 10px;
-  left: 10px;
-}
-#node_icon img {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  left: 50px;
-}
-
-#node_info {
-  position: absolute;
-  width: 200px;
-  top: 70px;
-  left: 10px;
-}
-#node_info h3 {
-  font-size: 9pt;
-  line-height: 20px;
-}
-#node_info p {
-  margin: 0;
-  font-size: 9pt;
-  line-height: 14px;
-}
-#node_info a {
-  margin: 0;
-  font-size: 9pt;
-  line-height: 14px;
-}
-#node_info .error {
-  color: darken($brand-danger, 20%);
-}
-
-#opt_bar {
-  position: absolute;
-  width: 200px;
-  top: 430px;
-  left: 29px;
 }
 
 /* Styling for draged firewall rule object */

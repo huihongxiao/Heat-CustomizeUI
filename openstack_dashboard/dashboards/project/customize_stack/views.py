@@ -32,7 +32,6 @@ class IndexView(views.APIView):
 
     def __init__(self, *args, **kwargs):
         super(IndexView, self).__init__(*args, **kwargs)
-        project_api.ini_draft_template_file()
 
     def get_data(self, request, context, *args, **kwargs):
         context = {}
@@ -85,7 +84,7 @@ class ModifyResourceView(forms.ModalFormView):
 
     def get_form_kwargs(self):
         kwargs = super(ModifyResourceView, self).get_form_kwargs()
-        kwargs['next_view'] = PreviewResourceDetailsView
+#        kwargs['next_view'] = PreviewResourceDetailsView
         if not self.kwargs:
             kwargs['parameters'] = json.loads(self.request.POST['parameters'])
         else:
@@ -112,9 +111,30 @@ class LaunchStackView(forms.ModalFormView):
     submit_label = _("Launch")
     submit_url = reverse_lazy("horizon:project:customize_stack:launch_stack")
     success_url = reverse_lazy('horizon:project:stacks:index')
-#    success_url = reverse_lazy('horizon:project:stacks:index')
     page_title = _("Launch Stack")
 
 class JSONView(django.views.generic.View):
     def get(self, request):
         return HttpResponse(project_api.get_draft_template(), content_type="application/json")
+
+class DeleteResourceView(forms.ModalFormView):
+    template_name = 'project/customize_stack/delete.html'
+    modal_header = _("Delete Resource")
+    form_id = "delete_resource"
+    form_class = project_forms.DeleteResourceForm
+    submit_label = _("Confirm")
+    submit_url = "horizon:project:customize_stack:delete_resource"
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Delete Resource")
+
+
+    def get_context_data(self, **kwargs):
+        context = super(DeleteResourceView, self).get_context_data(**kwargs)
+        args = (self.kwargs['resource_name'],)
+        context['submit_url'] = reverse(self.submit_url, args=args)
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super(DeleteResourceView, self).get_form_kwargs()
+        kwargs['resource_name'] = self.kwargs['resource_name']
+        return kwargs

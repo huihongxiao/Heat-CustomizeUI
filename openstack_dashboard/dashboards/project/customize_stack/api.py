@@ -39,7 +39,7 @@ def _get_resources_from_file():
         if mutex.acquire():
             f = open(file_path, 'rb')
             resources = pickle.load(f)
-            LOG.info('Exsisting resources are %s' % resources)
+#            LOG.info('Exsisting resources are %s' % resources)
             f.close()
             mutex.release()
     else:
@@ -115,8 +115,19 @@ def add_resource_to_draft(resource):
         f.close()
         mutex.release()
 
-def del_resource_from_draft():
-    pass
+def del_resource_from_draft(resource_name):
+    resources = _get_resources_from_file()
+    for idx, resource in enumerate(resources):
+        if resource['resource_name'] == resource_name:
+           resource_idx = idx
+           break
+
+    resources.pop(resource_idx)
+    if mutex.acquire():
+        f = open(file_path, 'wb')
+        pickle.dump(resources, f)
+        f.close()
+        mutex.release()
 
 
 def _generate_template(resources):
@@ -157,10 +168,10 @@ def launch_stack(request, stack_name, enable_rollback, timeout):
             'password': None,
             'template': template
         }
-
     try:
         heat.stack_create(request, **fields)
         messages.success(request, _("Stack creation started."))
+        ini_draft_template_file()
         return True
     except Exception:
         exceptions.handle(request)

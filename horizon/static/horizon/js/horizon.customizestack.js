@@ -69,7 +69,15 @@ function update(){
     $('#node_icon').html(icon);
     $('#node_info').html(d.info_box);
 	$('#opt_bar').show();
-	$('#cus_stack_action_delete').attr('href',"/project/customize_stack/select_resource");
+	$('#cus_stack_action_delete').attr('href',"/project/customize_stack/delete_resource/" + d.name + "/");
+/*	$('#cus_stack_action_delete').click(function() {
+    $.ajax({
+        url: "/project/customize_stack/delete_resource/" + d.name + "/",
+        type: 'GET',
+        dataType: 'json',
+        async: false
+    });            
+        });*/
     node_selected = true;
     d3.event.stopPropagation()
   });
@@ -187,6 +195,8 @@ function build_reverse_links(node){
   }
 }
 
+
+
 function ajax_poll(poll_time){
   setTimeout(function() {
     $.getJSON(ajax_url, function(json) {
@@ -290,5 +300,5 @@ if ($(container).length){
 
   //If status is In Progress, start AJAX polling
   var poll_time = 3000;
-  ajax_poll(poll_time);
+//  ajax_poll(poll_time);
 }

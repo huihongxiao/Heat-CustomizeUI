@@ -111,7 +111,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
 
     def __init__(self, *args, **kwargs):
         parameters = kwargs.pop('parameters')
-        self.next_view = kwargs.pop('next_view')
+#        self.next_view = kwargs.pop('next_view')
         super(ModifyResourceForm, self).__init__(*args, **kwargs)
         resource_names = project_api.get_resource_names()
         resource_name_choice = [("", "")]
@@ -192,8 +192,10 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
         # request so that we can chain it as an input to the next view...
         # but hey, it totally works.
-        request.method = 'GET'
-        return self.next_view.as_view()(request, resource_details = data)
+#        request.method = 'GET'
+#        return self.next_view.as_view()(request, resource_details = data)
+
+        return True
 
 class LaunchStackForm(forms.SelfHandlingForm):
     stack_name = forms.RegexField(
@@ -221,4 +223,16 @@ class LaunchStackForm(forms.SelfHandlingForm):
 
     def handle(self, request, data):
         project_api.launch_stack(request, data.get('stack_name'), data.get('enable_rollback'), data.get('timeout_mins'))
+        return True
+
+class DeleteResourceForm(forms.SelfHandlingForm):
+    class Meta(object):
+        name = _('Modify Resource Properties')
+
+    def __init__(self, *args, **kwargs):
+        self.resource_name = kwargs.pop('resource_name')
+        super(DeleteResourceForm, self).__init__(*args, **kwargs)
+
+    def handle(self, request, data):
+        project_api.del_resource_from_draft(self.resource_name)
         return True
