@@ -58,8 +58,8 @@ function update(){
   });
   node.on("mouseout", function() {
   	if(!node_selected) {
-//	  $("#node_icon").html('');
-//      $("#node_info").html('');
+	  $("#node_icon").html('');
+      $("#node_info").html('');
     }
   });
   node.on("click", function(d) {
