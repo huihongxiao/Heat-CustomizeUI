@@ -58,8 +58,8 @@ function update(){
   });
   node.on("mouseout", function() {
   	if(!node_selected) {
-	  $("#node_icon").html('');
-      $("#node_info").html('');
+//	  $("#node_icon").html('');
+//      $("#node_info").html('');
     }
   });
   node.on("click", function(d) {
@@ -67,22 +67,32 @@ function update(){
     icon = $('<img/>');
     icon.attr('src', d.image);
     $('#node_icon').html(icon);
-    $('#node_info').html(d.info_box);
+    showDetails(d);
 	$('#opt_bar').show();
 	$('#cus_stack_action_delete').attr('href',"/project/customize_stack/delete_resource/" + d.name + "/");
-/*	$('#cus_stack_action_delete').click(function() {
-    $.ajax({
-        url: "/project/customize_stack/delete_resource/" + d.name + "/",
-        type: 'GET',
-        dataType: 'json',
-        async: false
-    });            
-        });*/
+	
     node_selected = true;
     d3.event.stopPropagation()
   });
 
   force.start();
+}
+
+function showDetails(d) {
+	console.info(d);
+	var details = $('#node_info'),
+		seg;
+	details.html('');
+	for(var key in d) {
+		console.info(key);
+		seg = $('<h4></h4>');
+		seg.html(key);
+		details.append(seg);
+		seg = $('<p></p>');
+		seg.html(d[key]);
+		details.append(seg);
+	}
+
 }
 
 function tick() {
@@ -301,4 +311,11 @@ if ($(container).length){
   //If status is In Progress, start AJAX polling
   var poll_time = 3000;
 //  ajax_poll(poll_time);
+
+	//resize the canvas when the window is resized.
+	$(window).resize(function(){
+ 		var width = $(container).width();
+		force.size([width, height]);
+		svg.attr("width", width);
+	});
 }
