@@ -79,12 +79,10 @@ function update(){
 }
 
 function showDetails(d) {
-	console.info(d);
 	var details = $('#node_info'),
 		seg;
 	details.html('');
 	for(var key in d) {
-		console.info(key);
 		seg = $('<h4></h4>');
 		seg.html(key);
 		details.append(seg);
@@ -317,5 +315,6 @@ if ($(container).length){
  		var width = $(container).width();
 		force.size([width, height]);
 		svg.attr("width", width);
+		force.resume();
 	});
 }
