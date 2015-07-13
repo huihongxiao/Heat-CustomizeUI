@@ -241,3 +241,8 @@ def launch_stack(request, stack_name, enable_rollback, timeout):
     except Exception:
         exceptions.handle(request)
 
+
+def export_template(request):
+    resources = _get_resources_from_file(request.user.id)
+    template = _generate_template(resources)
+    return json.dumps(template)
