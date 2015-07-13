@@ -98,7 +98,8 @@ class ModifyResourceForm(forms.SelfHandlingForm):
                      required=False)
 
     properties_show = {
-        "OS::Nova::Server": ['image', 'flavor', 'networks', 'user_data'],
+        "OS::Nova::Server": ['image', 'flavor', 'networks', 'key_name',
+                             'user_data_format', 'user_data'],
         "OS::Cinder::Volume": ['size'],
         "OS::Cinder::VolumeAttachment": ['instance_uuid', 'mountpoint'],
         "OS::Heat::SoftwareConfig": ['config'],
@@ -138,7 +139,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
                 'initial': param.get('Default', None),
                 'label': param.get('Label', param_key),
                 'help_text': param.get('Description', '')                
-#                'required': param.get('Default', None) is Nione
+#                'required': param.get('Default', None) is None
             }
             param_type = param.get('Type', None)
             hidden = strutils.bool_from_string(param.get('NoEcho', 'false'))
@@ -160,6 +161,17 @@ class ModifyResourceForm(forms.SelfHandlingForm):
 
             elif param_key == 'image':
                 choices = self._populate_image_choices(self.request)
+                field_args['choices'] = choices
+                field = forms.ChoiceField(**field_args)
+
+            elif param_key == 'key_name':
+                choices = self._populate_keypair_choices(self.request)
+                field_args['required'] = None
+                field_args['choices'] = choices
+                field = forms.ChoiceField(**field_args)
+
+            elif param_key == 'user_data_format':
+                choices = ['RAW', 'HEAT_CFNTOOLS', 'SOFTWARE_CONFIG']
                 field_args['choices'] = choices
                 field = forms.ChoiceField(**field_args)
 
@@ -236,6 +248,9 @@ class ModifyResourceForm(forms.SelfHandlingForm):
 
     def _populate_network_choices(self, request):
         return instance_utils.network_field_data(request, True)
+
+    def _populate_keypair_choices(self, request):
+        return instance_utils.keypair_field_data(request, True)
 
     def _create_upload_form_attributes(self, prefix, input_type, name):
         attributes = {'class': 'switched', 'data-switch-on': prefix + 'source'}
