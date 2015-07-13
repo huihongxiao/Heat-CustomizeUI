@@ -15,9 +15,10 @@ from horizon import exceptions
 from horizon import messages
 
 
-file_path = "/etc/openstack-dashboard/cstack.data"
+# file_path = "/etc/openstack-dashboard/cstack.data"
+file_path = "/tmp/heat/%(user)s"
 LOG = logging.getLogger(__name__)
-mutex = threading.Lock()
+# mutex = threading.Lock()
 
 class Stack(object):
     pass
@@ -25,37 +26,74 @@ class Stack(object):
 class Resource(object):
     pass
 
-def ini_draft_template_file():
-    if os.path.isfile(file_path):
-        if mutex.acquire():
+class Mutex(object):
+    def __init__(self):
+        self.locks = {}
+
+    def acquire(self, user):
+        if not self.locks.get(user):
+            self.locks[user] = threading.Lock()
+        return self.locks[user].acquire()
+
+    def release(self, user):
+        if not self.locks.get(user):
+            self.locks[user] = threading.Lock()
+        return self.locks[user].release()
+
+mutex = Mutex()
+
+def clean_template_folder(user):
+    dirname = file_path % {'user': user}
+    file_name = os.path.join(dirname, 'cstack.data')
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    if os.path.isfile(file_name):
+        if mutex.acquire(user):
             LOG.info('Clear the draft template.')
-            f = open(file_path, 'wb')
+            for f in [ff for ff in os.listdir(dirname)]:
+                os.remove(os.path.join(dirname, f))
+            f = open(file_name, 'wb')
             pickle.dump([], f)
             f.close()
-            mutex.release()
+            mutex.release(user)
 
-def _get_resources_from_file():
-    if os.path.isfile(file_path):
-        if mutex.acquire():
-            f = open(file_path, 'rb')
+def _get_resources_from_file(user):
+    dirname = file_path % {'user': user}
+    file_name = os.path.join(dirname, 'cstack.data')
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    if os.path.isfile(file_name):
+        if mutex.acquire(user):
+            f = open(file_name, 'rb')
             resources = pickle.load(f)
 #            LOG.info('Exsisting resources are %s' % resources)
             f.close()
-            mutex.release()
+            mutex.release(user)
     else:
         LOG.info('Could not find draft template file %s' % file_path)
         resources = []
     return resources
 
-def get_resource_names():
+
+def _load_files_from_folder(user):
+    dirname = file_path % {'user': user}
+    ret = {}
+    if os.path.exists(dirname):
+        filelist = [os.path.join(dirname, ff)
+                    for ff in os.listdir(dirname)
+                    if ff != 'cstack.data']
+    return filelist
+
+
+def get_resource_names(request):
     resource_names = []
-    resources = _get_resources_from_file()
+    resources = _get_resources_from_file(request.user.id)
     for resource in resources:
         resource_names.append(resource['resource_name'])
     return resource_names
 
-def get_draft_template():
-    resources = _get_resources_from_file()
+def get_draft_template(request):
+    resources = _get_resources_from_file(request.user.id)
     d3_data = {"nodes": [], "stack": {}}
     stack = Stack()
     stack.id = ""
@@ -106,28 +144,36 @@ def get_draft_template():
             d3_data['nodes'].append(resource_node)
     return json.dumps(d3_data)
 
-def add_resource_to_draft(resource):
-    resources = _get_resources_from_file()
-    if mutex.acquire():
-        f = open(file_path, 'wb')
+def add_resource_to_draft(request, resource):
+    dirname = file_path % {'user': request.user.id}
+    file_name = os.path.join(dirname, 'cstack.data')
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    resources = _get_resources_from_file(request.user.id)
+    if mutex.acquire(request.user.id):
+        f = open(file_name, 'wb')
         resources.append(resource)
         pickle.dump(resources, f)
         f.close()
-        mutex.release()
+        mutex.release(request.user.id)
 
-def del_resource_from_draft(resource_name):
-    resources = _get_resources_from_file()
+def del_resource_from_draft(request, resource_name):
+    dirname = file_path % {'user': request.user.id}
+    file_name = os.path.join(dirname, 'cstack.data')
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    resources = _get_resources_from_file(request.user.id)
     for idx, resource in enumerate(resources):
         if resource['resource_name'] == resource_name:
            resource_idx = idx
            break
 
     resources.pop(resource_idx)
-    if mutex.acquire():
-        f = open(file_path, 'wb')
+    if mutex.acquire(request.user.id):
+        f = open(file_name, 'wb')
         pickle.dump(resources, f)
         f.close()
-        mutex.release()
+        mutex.release(request.user.id)
 
 
 def _generate_template(resources):
@@ -159,19 +205,21 @@ def _generate_template(resources):
 
 
 def launch_stack(request, stack_name, enable_rollback, timeout):
-    resources = _get_resources_from_file()
+    resources = _get_resources_from_file(request.user.id)
     template = _generate_template(resources)
+    files = _load_files_from_folder(request.user.id)
     fields = {
             'stack_name': stack_name,
             'timeout_mins': timeout,
             'disable_rollback': not(enable_rollback),
             'password': None,
-            'template': template
+            'template': template,
+            'files': None,
         }
     try:
         heat.stack_create(request, **fields)
         messages.success(request, _("Stack creation started."))
-        ini_draft_template_file()
+        clean_template_folder(request.user.id)
         return True
     except Exception:
         exceptions.handle(request)

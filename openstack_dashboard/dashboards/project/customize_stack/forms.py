@@ -113,7 +113,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         parameters = kwargs.pop('parameters')
 #        self.next_view = kwargs.pop('next_view')
         super(ModifyResourceForm, self).__init__(*args, **kwargs)
-        resource_names = project_api.get_resource_names()
+        resource_names = project_api.get_resource_names(self.request)
         resource_name_choice = [("", "")]
         for resource_name in resource_names:
             resource_name_choice.append((resource_name, resource_name))
@@ -124,7 +124,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
     def _build_parameter_fields(self, params):
         filter_parameters = self.properties_show[params['resource_type']]
         params_in_order = sorted(params.items())
-	for param_key, param in params_in_order:
+        for param_key, param in params_in_order:
 
             if param_key == 'resource_type':
                 self.fields['resource_type'].initial = param
@@ -188,7 +188,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         LOG.info('Finalized Resource Parameters %s' % data)
         if data['resource_type'] == 'OS::Nova::Server':
             data['networks'] = [{'network': data['networks']}]
-        project_api.add_resource_to_draft(data)
+        project_api.add_resource_to_draft(request, data)
         # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
         # request so that we can chain it as an input to the next view...
         # but hey, it totally works.
@@ -234,5 +234,5 @@ class DeleteResourceForm(forms.SelfHandlingForm):
         super(DeleteResourceForm, self).__init__(*args, **kwargs)
 
     def handle(self, request, data):
-        project_api.del_resource_from_draft(self.resource_name)
+        project_api.del_resource_from_draft(request, self.resource_name)
         return True

@@ -115,7 +115,7 @@ class LaunchStackView(forms.ModalFormView):
 
 class JSONView(django.views.generic.View):
     def get(self, request):
-        return HttpResponse(project_api.get_draft_template(), content_type="application/json")
+        return HttpResponse(project_api.get_draft_template(request), content_type="application/json")
 
 class DeleteResourceView(forms.ModalFormView):
     template_name = 'project/customize_stack/delete.html'
