@@ -78,11 +78,16 @@ def _get_resources_from_file(user):
 def _load_files_from_folder(user):
     dirname = file_path % {'user': user}
     ret = {}
-    if os.path.exists(dirname):
-        filelist = [os.path.join(dirname, ff)
+    filelist = [os.path.join(dirname, ff)
                     for ff in os.listdir(dirname)
                     if ff != 'cstack.data']
-    return filelist
+    for ff in filelist:
+        # import ipdb;ipdb.set_trace()
+        f = open(ff, 'r')
+        content = f.read()
+        f.close()
+        ret['file://'+ff] = content
+    return ret
 
 
 def save_user_file(user, file):
@@ -226,7 +231,7 @@ def launch_stack(request, stack_name, enable_rollback, timeout):
             'disable_rollback': not(enable_rollback),
             'password': None,
             'template': template,
-            'files': None,
+            'files': files,
         }
     try:
         heat.stack_create(request, **fields)
