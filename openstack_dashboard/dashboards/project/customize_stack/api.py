@@ -85,6 +85,18 @@ def _load_files_from_folder(user):
     return filelist
 
 
+def save_user_file(user, file):
+    dirname = file_path % {'user': user}
+    file_name = os.path.join(dirname, file.name)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    if mutex.acquire(user):
+        f = open(file_name, 'wb')
+        f.write(file.read())
+        f.close()
+        mutex.release(user)
+    return file_name
+
 def get_resource_names(request):
     resource_names = []
     resources = _get_resources_from_file(request.user.id)

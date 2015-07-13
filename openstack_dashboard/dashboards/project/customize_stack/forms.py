@@ -153,6 +153,33 @@ class ModifyResourceForm(forms.SelfHandlingForm):
                 field_args['choices'] = choices
                 field = forms.ChoiceField(**field_args)
 
+            elif param_key == 'flavor':
+                choices = self._populate_flavor_choices(self.request)
+                field_args['choices'] = choices
+                field = forms.ChoiceField(**field_args)
+
+            elif param_key == 'image':
+                choices = self._populate_image_choices(self.request)
+                field_args['choices'] = choices
+                field = forms.ChoiceField(**field_args)
+
+            elif param_key == 'networks':
+                choices = self._populate_network_choices(self.request)
+                field_args['choices'] = choices
+                field = forms.ChoiceField(**field_args)
+
+            elif param_key == 'user_data':
+                self.is_multipart = True
+                attributes = self._create_upload_form_attributes(
+                    'user_data',
+                    'file',
+                    _('User Data File'))
+                field = forms.FileField(
+                    label=_('User Data File'),
+                    help_text=_('A user data script to upload.'),
+                    widget=forms.FileInput(attrs=attributes),
+                    required=False)
+
             elif param_type == 'Json' and 'Default' in param:
                 field_args['initial'] = json.dumps(param['Default'])
                 field = forms.CharField(**field_args)
@@ -188,7 +215,11 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         LOG.info('Finalized Resource Parameters %s' % data)
         if data['resource_type'] == 'OS::Nova::Server':
             data['networks'] = [{'network': data['networks']}]
-        project_api.add_resource_to_draft(request, data)
+            files = self.request.FILES
+            if files.get('user_data'):
+                path = project_api.save_user_file(self.request.user.id, files.get('user_data'))
+                data['user_data'] = { 'get_file': 'file://' + path }
+        project_api.add_resource_to_draft(self.request, data)
         # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
         # request so that we can chain it as an input to the next view...
         # but hey, it totally works.
@@ -196,6 +227,21 @@ class ModifyResourceForm(forms.SelfHandlingForm):
 #        return self.next_view.as_view()(request, resource_details = data)
 
         return True
+
+    def _populate_flavor_choices(self, request):
+        return instance_utils.flavor_field_data(request, True)
+
+    def _populate_image_choices(self, request):
+        return image_utils.image_field_data(request, True)
+
+    def _populate_network_choices(self, request):
+        return instance_utils.network_field_data(request, True)
+
+    def _create_upload_form_attributes(self, prefix, input_type, name):
+        attributes = {'class': 'switched', 'data-switch-on': prefix + 'source'}
+        attributes['data-' + prefix + 'source-' + input_type] = name
+        return attributes
+
 
 class LaunchStackForm(forms.SelfHandlingForm):
     stack_name = forms.RegexField(
