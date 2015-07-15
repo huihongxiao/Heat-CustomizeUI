@@ -178,6 +178,10 @@ def get_resourse_info(request, resource_name):
                 return resource_folk
 
 def modify_resource_in_draft(request, modified, origin_name):
+    dirname = file_path % {'user': request.user.id}
+    file_name = os.path.join(dirname, 'cstack.data')
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
     resources = _get_resources_from_file(request.user.id)
     to_modify = None
     for resource in resources:
@@ -190,7 +194,7 @@ def modify_resource_in_draft(request, modified, origin_name):
         del_dependencies(resources, origin_name)
     
     if mutex.acquire(request.user.id):
-        f = open(file_path, 'wb')
+        f = open(file_name, 'wb')
         pickle.dump(resources, f)
         f.close()
         mutex.release(request.user.id)

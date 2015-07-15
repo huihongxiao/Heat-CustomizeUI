@@ -240,7 +240,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
     def clean(self, **kwargs):
         data = super(ModifyResourceForm, self).clean()
 
-        existing_names = project_api.get_resource_names()
+        existing_names = project_api.get_resource_names(self.request)
         if 'resource_name' in data:
             if self.origin_resource :
                 for name in existing_names:
@@ -326,7 +326,7 @@ class ClearCanvasForm(forms.SelfHandlingForm):
         name = _('Clear the canvas')
 
     def handle(self, request, data):
-        project_api.ini_draft_template_file()
+        project_api.clean_template_folder(self.request.user.id)
         return True
     
 class DeleteResourceForm(forms.SelfHandlingForm):
