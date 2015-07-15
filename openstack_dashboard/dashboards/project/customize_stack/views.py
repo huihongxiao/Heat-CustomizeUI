@@ -121,11 +121,11 @@ class LaunchStackView(forms.ModalFormView):
     page_title = _("Launch Stack")
 
 class ClearCanvasView(forms.ModalFormView):
-    template_name = 'project/customize_stack/launch.html'
-    modal_header = _("Launch Stack")
+    template_name = 'project/customize_stack/clear.html'
+    modal_header = _("Clear Canvas")
     form_id = "clear_canvas"
     form_class = project_forms.ClearCanvasForm
-    submit_label = _("Clear")
+    submit_label = _("Confirm")
     submit_url = reverse_lazy("horizon:project:customize_stack:clear_canvas")
     success_url = reverse_lazy('horizon:project:customize_stack:index')
     page_title = _("Clear Canvas")
