@@ -111,43 +111,19 @@ def get_resource_names(request):
 
 def get_draft_template(request):
     resources = _get_resources_from_file(request.user.id)
-    d3_data = {"nodes": [], "stack": {}}
-    stack = Stack()
-    stack.id = ""
-    stack.stack_name = ""
-    stack.stack_status = 'INIT'
-    stack.stack_status_reason = ''
-    stack_image = mappings.get_resource_image('INIT', 'stack')
-    stack_node = {
-            'stack_id': stack.id,
-            'name': stack.stack_name,
-            'status': stack.stack_status,
-            'image': stack_image,
-            'image_size': 60,
-            'image_x': -30,
-            'image_y': -30,
-            'text_x': 40,
-            'text_y': ".35em",
-            'in_progress': False,
-            'info_box': sro.stack_info(stack, stack_image)
-    }
-    d3_data['stack'] = stack_node
+    d3_data = {"nodes": []}
 
     if resources:
         for resource_folk in resources:
             resource = Resource()
             resource.resource_type = resource_folk['resource_type']
-            resource.resource_status = 'COMPLETE'
-            resource.resource_status_reason = 'COMPLETE'
             resource.resource_name = resource_folk['resource_name']
             resource.required_by = [resource_folk['depends_on']]
             resource_image = mappings.get_resource_image(
-                resource.resource_status,
+                'COMPLETE',
                 resource.resource_type)
-            in_progress = True
             resource_node = {
                 'name': resource.resource_name,
-                'status': resource.resource_status,
                 'image': resource_image,
                 'required_by': resource.required_by,
                 'image_size': 50,
@@ -155,9 +131,10 @@ def get_draft_template(request):
                 'image_y': -25,
                 'text_x': 35,
                 'text_y': ".35em",
-                'in_progress': in_progress,
-                'info_box': sro.resource_info(resource)
             }
+            if 'parameters' in resource_folk:
+                resource_folk.pop('parameters')
+            resource_node['details'] = resource_folk
             d3_data['nodes'].append(resource_node)
     return json.dumps(d3_data)
 
@@ -182,16 +159,47 @@ def del_resource_from_draft(request, resource_name):
     resources = _get_resources_from_file(request.user.id)
     for idx, resource in enumerate(resources):
         if resource['resource_name'] == resource_name:
-           resource_idx = idx
-           break
-
+            resource_idx = idx
+        break
     resources.pop(resource_idx)
+    del_dependencies(resources, resource_name)
     if mutex.acquire(request.user.id):
         f = open(file_name, 'wb')
         pickle.dump(resources, f)
         f.close()
         mutex.release(request.user.id)
 
+def get_resourse_info(request, resource_name):
+    resources = _get_resources_from_file(request.user.id)
+
+    if resources:
+        for resource_folk in resources:
+            if resource_name == resource_folk['resource_name']:
+                return resource_folk
+
+def modify_resource_in_draft(request, modified, origin_name):
+    resources = _get_resources_from_file(request.user.id)
+    to_modify = None
+    for resource in resources:
+        if resource['resource_name'] == origin_name:
+            to_modify = resource
+            break
+    for key in modified:
+        to_modify[key] = modified[key]
+    if modified['resource_name'] != origin_name:
+        del_dependencies(resources, origin_name)
+    
+    if mutex.acquire(request.user.id):
+        f = open(file_path, 'wb')
+        pickle.dump(resources, f)
+        f.close()
+        mutex.release(request.user.id)
+        
+def del_dependencies(resources, to_del):
+    for resource in resources:
+        if resource['depends_on'] == to_del:
+            resource['depends_on'] = None
+    
 
 def _generate_template(resources):
     template = {

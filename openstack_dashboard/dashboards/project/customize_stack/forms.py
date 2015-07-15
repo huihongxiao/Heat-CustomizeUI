@@ -1,12 +1,12 @@
 import json
 import logging
 
+from django.forms import ValidationError  # noqa
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.debug import sensitive_variables  # noqa
 from django.http import HttpResponse  # noqa
 
 from oslo_utils import strutils
-import six
 
 from horizon import exceptions
 from horizon import forms
@@ -27,7 +27,7 @@ class SelectResourceForm(forms.SelfHandlingForm):
 
     class Meta(object):
         name = _('Select Resource Type')
-        help_text = _('Select a resource type to add to  a template.')
+        help_text = _('Select a resource type to add to a template.')
 
     resource_type = forms.ChoiceField(label=_("Resource Type"),
                                     help_text=_("Select the type of resource to add"))
@@ -49,7 +49,7 @@ class SelectResourceForm(forms.SelfHandlingForm):
     def _get_resource_types(self, request):
         resource_types = []
         try:
-            resource_types = api.heat.resource_types_list(request)
+            resource_types = api.heat.resource_types_list(request)   
         except Exception:
             msg = _('Resource type could not be retrieved.')
             exceptions.handle(request, msg)
@@ -105,24 +105,36 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         "OS::Heat::SoftwareConfig": ['config'],
         "OS::Heat::SoftwareDeployment": ['config', 'server']
     }
+    
+    origin_resource = None;
 
     class Meta(object):
         name = _('Modify Resource Properties')
 
-
     def __init__(self, *args, **kwargs):
         parameters = kwargs.pop('parameters')
+        resource = None
+        if 'resource' in kwargs:
+            resource = kwargs.pop('resource')
 #        self.next_view = kwargs.pop('next_view')
         super(ModifyResourceForm, self).__init__(*args, **kwargs)
         resource_names = project_api.get_resource_names(self.request)
         resource_name_choice = [("", "")]
         for resource_name in resource_names:
             resource_name_choice.append((resource_name, resource_name))
+        if resource:
+            for idx, choice in enumerate(resource_name_choice):
+                if choice[0] == resource['resource_name']:
+                    resource_name_choice.pop(idx)
+                    break
+            self.fields['depends_on'].initial = resource['depends_on']
+            self.fields['resource_name'].initial = resource['resource_name']
+            self.origin_resource = resource
         self.fields['depends_on'].choices = (resource_name_choice)
         LOG.info('Original Resource Parameters %s' % parameters)
-        self._build_parameter_fields(parameters)
+        self._build_parameter_fields(parameters, resource)
 
-    def _build_parameter_fields(self, params):
+    def _build_parameter_fields(self, params, resource):
         filter_parameters = self.properties_show[params['resource_type']]
         params_in_order = sorted(params.items())
         for param_key, param in params_in_order:
@@ -136,11 +148,14 @@ class ModifyResourceForm(forms.SelfHandlingForm):
             field = None
             field_key = self.param_prefix + param_key
             field_args = {
-                'initial': param.get('Default', None),
                 'label': param.get('Label', param_key),
-                'help_text': param.get('Description', '')                
+                'help_text': param.get('Description', '') 
 #                'required': param.get('Default', None) is None
             }
+            if resource:
+                field_args['initial'] = resource.get(param_key, None)
+            else:
+                field_args['initial'] = param.get('Default', None)
             param_type = param.get('Type', None)
             hidden = strutils.bool_from_string(param.get('NoEcho', 'false'))
             if 'CustomConstraint' in param:
@@ -221,8 +236,25 @@ class ModifyResourceForm(forms.SelfHandlingForm):
 
             if field:
                 self.fields[field_key] = field
+    
+    def clean(self, **kwargs):
+        data = super(ModifyResourceForm, self).clean()
 
-    def handle(self, request, data):
+        existing_names = project_api.get_resource_names()
+        if 'resource_name' in data:
+            if self.origin_resource :
+                for name in existing_names:
+                    if data['resource_name'] == name and name != self.origin_resource['resource_name']:
+                        raise ValidationError(
+                            _("There is already a resource with the same name.")) 
+            else :
+                for name in existing_names:
+                    if data['resource_name'] == name:
+                        raise ValidationError(
+                            _("There is already a resource with the same name.")) 
+        return data
+
+    def handle(self, request, data, **kwargs):
         data.pop('parameters')
         LOG.info('Finalized Resource Parameters %s' % data)
         if data['resource_type'] == 'OS::Nova::Server':
@@ -231,13 +263,15 @@ class ModifyResourceForm(forms.SelfHandlingForm):
             if files.get('user_data'):
                 path = project_api.save_user_file(self.request.user.id, files.get('user_data'))
                 data['user_data'] = { 'get_file': 'file://' + path }
-        project_api.add_resource_to_draft(self.request, data)
+        if self.origin_resource :
+            project_api.modify_resource_in_draft(self.request, data, self.origin_resource['resource_name'])
+        else :
+            project_api.add_resource_to_draft(self.request, data)
         # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
         # request so that we can chain it as an input to the next view...
         # but hey, it totally works.
 #        request.method = 'GET'
 #        return self.next_view.as_view()(request, resource_details = data)
-
         return True
 
     def _populate_flavor_choices(self, request):
@@ -286,6 +320,15 @@ class LaunchStackForm(forms.SelfHandlingForm):
         project_api.launch_stack(request, data.get('stack_name'), data.get('enable_rollback'), data.get('timeout_mins'))
         return True
 
+class ClearCanvasForm(forms.SelfHandlingForm):
+
+    class Meta(object):
+        name = _('Clear the canvas')
+
+    def handle(self, request, data):
+        project_api.ini_draft_template_file()
+        return True
+    
 class DeleteResourceForm(forms.SelfHandlingForm):
     class Meta(object):
         name = _('Modify Resource Properties')

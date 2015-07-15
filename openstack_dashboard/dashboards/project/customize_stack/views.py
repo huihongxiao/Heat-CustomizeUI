@@ -91,7 +91,6 @@ class ModifyResourceView(forms.ModalFormView):
             kwargs['parameters'] = self.kwargs
         return kwargs
 
-
 class PreviewResourceDetailsView(forms.ModalFormMixin, views.HorizonTemplateView):
     template_name = 'project/customize_stack/preview_details.html'
     page_title = _("Preview Resource Details")
@@ -110,7 +109,6 @@ class ExportResourceView(forms.ModalFormMixin, views.HorizonTemplateView):
         response['Content-Disposition'] = 'attachment; filename="example.template"'
         response['Content-Length'] = len(data.encode('utf8'))
         return response
-        
 
 class LaunchStackView(forms.ModalFormView):
     template_name = 'project/customize_stack/launch.html'
@@ -121,6 +119,16 @@ class LaunchStackView(forms.ModalFormView):
     submit_url = reverse_lazy("horizon:project:customize_stack:launch_stack")
     success_url = reverse_lazy('horizon:project:stacks:index')
     page_title = _("Launch Stack")
+
+class ClearCanvasView(forms.ModalFormView):
+    template_name = 'project/customize_stack/launch.html'
+    modal_header = _("Launch Stack")
+    form_id = "clear_canvas"
+    form_class = project_forms.ClearCanvasForm
+    submit_label = _("Clear")
+    submit_url = reverse_lazy("horizon:project:customize_stack:clear_canvas")
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Clear Canvas")
 
 class JSONView(django.views.generic.View):
     def get(self, request):
@@ -146,4 +154,60 @@ class DeleteResourceView(forms.ModalFormView):
     def get_form_kwargs(self):
         kwargs = super(DeleteResourceView, self).get_form_kwargs()
         kwargs['resource_name'] = self.kwargs['resource_name']
+        return kwargs
+    
+
+class EditResourceView(forms.ModalFormView):
+    template_name = 'project/customize_stack/modify.html'
+    modal_header = _("Edit Resource")
+    form_id = "edit_resource"
+    form_class = project_forms.ModifyResourceForm
+    submit_label = _("Confirm")
+    submit_url = "horizon:project:customize_stack:edit_resource"
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Edit Resource")
+    
+    def get_context_data(self, **kwargs):
+        context = super(EditResourceView, self).get_context_data(**kwargs)
+        args = (self.kwargs['resource_name'],)
+        context['submit_url'] = reverse(self.submit_url, args=args)
+        return context
+
+    def _get_resource_type(self, request, resource_type):
+        resource_properties = {}
+        try:
+            resource = api.heat.resource_type_generate_template(request, resource_type)
+            resource_properties = resource['Parameters']
+        except Exception:
+            msg = _('Unable to retrieve details of resource type %(rt)s' % {'rt': resource_type})
+            exceptions.handle(request, msg)
+        return resource_properties
+
+    def _get_resource(self, resource_name):
+#         resource_properties = {}
+        resource = project_api.get_resourse_info(self.request, resource_name)
+        return resource
+    
+    def get_initial(self):
+        initial = {}
+        resource = self._get_resource(self.kwargs['resource_name'])
+        kwargs = self._get_resource_type(self.request, resource['resource_type'])
+        kwargs['resource_type'] = resource['resource_type']
+        # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
+        # request so that we can chain it as an input to the next view...
+        # but hey, it totally works.
+#         self.kwargs = kwargs
+        
+        initial['parameters'] = kwargs
+        initial['resource'] = resource
+        return initial
+
+    def get_form_kwargs(self):
+        kwargs = super(EditResourceView, self).get_form_kwargs()
+#        kwargs['next_view'] = PreviewResourceDetailsView
+        if not self.kwargs:
+            kwargs['parameters'] = json.loads(self.request.POST['parameters'])
+        else:
+            kwargs['parameters'] = kwargs['initial']['parameters']
+        kwargs['resource'] = kwargs['initial']['resource']
         return kwargs
