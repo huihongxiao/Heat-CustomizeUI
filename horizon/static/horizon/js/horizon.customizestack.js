@@ -53,6 +53,7 @@ function update(){
       icon = $('<img/>');
       icon.attr('src', d.image);
       $("#node_icon").html(icon);
+      showBrief(d.details);
       $("#node_info").html(d.info_box);
     }
   });
@@ -67,14 +68,52 @@ function update(){
     icon = $('<img/>');
     icon.attr('src', d.image);
     $('#node_icon').html(icon);
-    $('#node_info').html(d.info_box);
+    showDetails(d.details);
 	$('#opt_bar').show();
-	$('#cus_stack_action_delete').attr('href',"/project/customize_stack/select_resource");
+	$('#cus_stack_action_delete').attr('href',"/project/customize_stack/delete_resource/" + d.name + "/");
+	$('#cus_stack_action_edit').attr('href',"/project/customize_stack/edit_resource/" + d.name + "/");
+	
     node_selected = true;
     d3.event.stopPropagation()
   });
 
   force.start();
+}
+
+function showBrief(d) {
+	var details = $('#node_info'),
+		seg;
+	details.html('');
+	seg = $('<h3></h3>');
+	seg.html('name');
+	details.append(seg);
+	seg = $('<p></p>');
+	seg.html(d.resource_name);
+	details.append(seg);
+	seg = $('<h4></h4>');
+	seg.html('type');
+	details.append(seg);
+	seg = $('<p></p>');
+	seg.html(d.resource_type);
+	details.append(seg);
+}
+
+function showDetails(d) {
+	var details = $('#node_info'),
+		seg;
+	
+	showBrief(d)
+	
+	for(var key in d) {
+		if(key == 'resource_name' || key == 'resource_type')
+			continue;
+		seg = $('<h4></h4>');
+		seg.html(key);
+		details.append(seg);
+		seg = $('<p></p>');
+		seg.html(d[key]?d[key]:'None');
+		details.append(seg);
+	}
 }
 
 function tick() {
@@ -187,6 +226,8 @@ function build_reverse_links(node){
   }
 }
 
+
+
 function ajax_poll(poll_time){
   setTimeout(function() {
     $.getJSON(ajax_url, function(json) {
@@ -290,5 +331,13 @@ if ($(container).length){
 
   //If status is In Progress, start AJAX polling
   var poll_time = 3000;
-  ajax_poll(poll_time);
+//  ajax_poll(poll_time);
+
+	//resize the canvas when the window is resized.
+	$(window).resize(function(){
+ 		var width = $(container).width();
+		force.size([width, height]);
+		svg.attr("width", width);
+		force.resume();
+	});
 }
