@@ -23,6 +23,21 @@ from openstack_dashboard.dashboards.project.customize_stack \
 
 LOG = logging.getLogger(__name__)
 
+resource_type_map = {
+    "OS::Nova::Server": 'server.Resource',
+    "OS::Cinder::Volume": 'cinder.Volume',
+    "OS::Cinder::VolumeAttachment": 'cinder.VolumeAttachement',
+    "OS::Heat::SoftwareConfig": 'software.SoftwareConfig',
+    "OS::Heat::SoftwareDeployment": 'software.SoftwareDeployment',
+}
+
+def load_module(name):
+    mod = __import__(name)
+    components = name.split('.')
+    for comp in components[1:]:
+        mod = getattr(mod, comp)
+    return mod
+
 class SelectResourceForm(forms.SelfHandlingForm):
 
     class Meta(object):
@@ -31,7 +46,6 @@ class SelectResourceForm(forms.SelfHandlingForm):
 
     resource_type = forms.ChoiceField(label=_("Resource Type"),
                                     help_text=_("Select the type of resource to add"))
-    resource_type_show = ["OS::Nova::Server", "OS::Cinder::Volume", "OS::Cinder::VolumeAttachment", "OS::Heat::SoftwareConfig", "OS::Heat::SoftwareDeployment"]
 
     def __init__(self, *args, **kwargs):
         self.next_view = kwargs.pop('next_view')
@@ -42,7 +56,7 @@ class SelectResourceForm(forms.SelfHandlingForm):
     def get_resource_type_choices(self, request):
         resource_type_choices = [('', _("Select a resource type"))]
         for resource_type in self._get_resource_types(request):
-            if (resource_type.resource_type in self.resource_type_show):
+            if resource_type.resource_type in resource_type_map.keys():
                 resource_type_choices.append((resource_type.resource_type, resource_type.resource_type))
         return sorted(resource_type_choices, key=lambda item: item[0])
 
@@ -64,7 +78,6 @@ class SelectResourceForm(forms.SelfHandlingForm):
             msg = _('Unable to retrieve details of resource type %(rt)s' % {'rt': resource_type})
             exceptions.handle(request, msg)
         return resource_properties
-
 
     def handle(self, request, data):
         kwargs = self._get_resource_type(self.request, data.get('resource_type'))
@@ -97,16 +110,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
     depends_on = forms.ChoiceField(label=_('Select the resource to depend on'),
                      required=False)
 
-    properties_show = {
-        "OS::Nova::Server": ['image', 'flavor', 'networks', 'key_name',
-                             'user_data_format', 'user_data'],
-        "OS::Cinder::Volume": ['size'],
-        "OS::Cinder::VolumeAttachment": ['instance_uuid', 'mountpoint'],
-        "OS::Heat::SoftwareConfig": ['config'],
-        "OS::Heat::SoftwareDeployment": ['config', 'server']
-    }
-    
-    origin_resource = None;
+    origin_resource = None
 
     class Meta(object):
         name = _('Modify Resource Properties')
@@ -118,6 +122,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
             resource = kwargs.pop('resource')
 #        self.next_view = kwargs.pop('next_view')
         super(ModifyResourceForm, self).__init__(*args, **kwargs)
+        self.is_multipart = True
         resource_names = project_api.get_resource_names(self.request)
         resource_name_choice = [("", "")]
         for resource_name in resource_names:
@@ -132,110 +137,31 @@ class ModifyResourceForm(forms.SelfHandlingForm):
             self.origin_resource = resource
         self.fields['depends_on'].choices = (resource_name_choice)
         LOG.info('Original Resource Parameters %s' % parameters)
+        prop_type = parameters['resource_type']
+        target_cls = resource_type_map.get(prop_type, None)
+        if target_cls is None:
+            target_cls = prop_type.replace('::', '_')+'.Resource'
+        module, cls_name = target_cls.split('.')
+        try:
+            mod = load_module('openstack_dashboard.dashboards.'
+                              'project.customize_stack.'
+                              'resources.'+module)
+            cls = getattr(mod, cls_name)
+        except Exception as ex:
+            raise ex
+        self.res = cls(self.request)
         self._build_parameter_fields(parameters, resource)
 
     def _build_parameter_fields(self, params, resource):
-        filter_parameters = self.properties_show[params['resource_type']]
-        params_in_order = sorted(params.items())
-        for param_key, param in params_in_order:
+        if resource:
+            for prop_name, prop_data in params.items():
+                if prop_name in resource:
+                    params[prop_name]['Default'] = resource.get(prop_name)
 
-            if param_key == 'resource_type':
-                self.fields['resource_type'].initial = param
-                continue
-            if not param_key in filter_parameters:
-                continue
-
-            field = None
-            field_key = self.param_prefix + param_key
-            field_args = {
-                'label': param.get('Label', param_key),
-                'help_text': param.get('Description', '') 
-#                'required': param.get('Default', None) is None
-            }
-            if resource:
-                field_args['initial'] = resource.get(param_key, None)
-            else:
-                field_args['initial'] = param.get('Default', None)
-            param_type = param.get('Type', None)
-            hidden = strutils.bool_from_string(param.get('NoEcho', 'false'))
-            if 'CustomConstraint' in param:
-                choices = self._populate_custom_choices(
-                    param['CustomConstraint'])
-                field_args['choices'] = choices
-                field = forms.ChoiceField(**field_args)
-
-            elif 'AllowedValues' in param:
-                choices = map(lambda x: (x, x), param['AllowedValues'])
-                field_args['choices'] = choices
-                field = forms.ChoiceField(**field_args)
-
-            elif param_key == 'flavor':
-                choices = self._populate_flavor_choices(self.request)
-                field_args['choices'] = choices
-                field = forms.ChoiceField(**field_args)
-
-            elif param_key == 'image':
-                choices = self._populate_image_choices(self.request)
-                field_args['choices'] = choices
-                field = forms.ChoiceField(**field_args)
-
-            elif param_key == 'key_name':
-                choices = self._populate_keypair_choices(self.request)
-                field_args['required'] = None
-                field_args['choices'] = choices
-                field = forms.ChoiceField(**field_args)
-
-            elif param_key == 'user_data_format':
-                choices = ['RAW', 'HEAT_CFNTOOLS', 'SOFTWARE_CONFIG']
-                field_args['choices'] = choices
-                field = forms.ChoiceField(**field_args)
-
-            elif param_key == 'networks':
-                choices = self._populate_network_choices(self.request)
-                field_args['choices'] = choices
-                field = forms.ChoiceField(**field_args)
-
-            elif param_key == 'user_data':
-                self.is_multipart = True
-                attributes = self._create_upload_form_attributes(
-                    'user_data',
-                    'file',
-                    _('User Data File'))
-                field = forms.FileField(
-                    label=_('User Data File'),
-                    help_text=_('A user data script to upload.'),
-                    widget=forms.FileInput(attrs=attributes),
-                    required=False)
-
-            elif param_type == 'Json' and 'Default' in param:
-                field_args['initial'] = json.dumps(param['Default'])
-                field = forms.CharField(**field_args)
-
-            elif param_type in ('CommaDelimitedList', 'String', 'Json'):
-                if 'MinLength' in param:
-                    field_args['min_length'] = int(param['MinLength'])
-                    field_args['required'] = param.get('MinLength', 0) > 0
-                if 'MaxLength' in param:
-                    field_args['max_length'] = int(param['MaxLength'])
-                if hidden:
-                    field_args['widget'] = forms.PasswordInput()
-                field = forms.CharField(**field_args)
-
-            elif param_type == 'Number':
-                if 'MinValue' in param:
-                    field_args['min_value'] = int(param['MinValue'])
-                if 'MaxValue' in param:
-                    field_args['max_value'] = int(param['MaxValue'])
-                field = forms.IntegerField(**field_args)
-
-            # heat-api currently returns the boolean type in lowercase
-            # (see https://bugs.launchpad.net/heat/+bug/1361448)
-            # so for better compatibility both are checked here
-            elif param_type in ('Boolean', 'boolean'):
-                field = forms.BooleanField(**field_args)
-
-            if field:
-                self.fields[field_key] = field
+        self.fields['resource_type'].initial = params.pop('resource_type')
+        fields = self.res.generate_prop_fields(params)
+        for key, value in fields.items():
+            self.fields[key] = value
     
     def clean(self, **kwargs):
         data = super(ModifyResourceForm, self).clean()
@@ -273,23 +199,6 @@ class ModifyResourceForm(forms.SelfHandlingForm):
 #        request.method = 'GET'
 #        return self.next_view.as_view()(request, resource_details = data)
         return True
-
-    def _populate_flavor_choices(self, request):
-        return instance_utils.flavor_field_data(request, True)
-
-    def _populate_image_choices(self, request):
-        return image_utils.image_field_data(request, True)
-
-    def _populate_network_choices(self, request):
-        return instance_utils.network_field_data(request, True)
-
-    def _populate_keypair_choices(self, request):
-        return instance_utils.keypair_field_data(request, True)
-
-    def _create_upload_form_attributes(self, prefix, input_type, name):
-        attributes = {'class': 'switched', 'data-switch-on': prefix + 'source'}
-        attributes['data-' + prefix + 'source-' + input_type] = name
-        return attributes
 
 
 class LaunchStackForm(forms.SelfHandlingForm):
