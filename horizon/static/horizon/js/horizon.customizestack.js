@@ -85,9 +85,6 @@ function showBrief(d) {
 		seg;
 	details.html('');
 	seg = $('<h3></h3>');
-	seg.html('name');
-	details.append(seg);
-	seg = $('<p></p>');
 	seg.html(d.resource_name);
 	details.append(seg);
 	seg = $('<h4></h4>');

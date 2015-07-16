@@ -1694,8 +1694,8 @@ label.log-length {
 #node_icon {
   float: left;
   height: 70px;
-  padding: 10px 10px 0px;
   width: 189px;
+  margin-top: 10px;
 }
 #node_icon img {
   position: absolute;
@@ -1716,6 +1716,9 @@ label.log-length {
   font-weight: bold;
   line-height: 20px;
   text-align: center;
+  border-bottom:1px solid #DEDEDE;
+  padding: 5px;
+  margin: 0px;
 }
 #node_info h4 {
   font-size: 10pt;
