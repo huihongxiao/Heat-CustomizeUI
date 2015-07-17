@@ -191,7 +191,7 @@ def modify_resource_in_draft(request, modified, origin_name):
     for key in modified:
         to_modify[key] = modified[key]
     if modified['resource_name'] != origin_name:
-        del_dependencies(resources, origin_name)
+        modify_dependencies(resources, origin_name, modified['resource_name'])
     
     if mutex.acquire(request.user.id):
         f = open(file_name, 'wb')
@@ -204,7 +204,11 @@ def del_dependencies(resources, to_del):
         if resource['depends_on'] == to_del:
             resource['depends_on'] = None
     
-
+def modify_dependencies(resources, origin, new):
+    for resource in resources:
+        if resource['depends_on'] == origin:
+            resource['depends_on'] = new
+            
 def _generate_template(resources):
     template = {
         'heat_template_version': '2013-05-23',

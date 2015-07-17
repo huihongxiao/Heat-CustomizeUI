@@ -64,7 +64,6 @@ function update(){
     }
   });
   node.on("click", function(d) {
-    $("#detail_box").addClass('selected_detail_box');
     icon = $('<img/>');
     icon.attr('src', d.image);
     $('#node_icon').html(icon);
@@ -111,6 +110,7 @@ function showDetails(d) {
 		seg.html(d[key]?d[key]:'None');
 		details.append(seg);
 	}
+	$('#detail_box').perfectScrollbar();
 }
 
 function tick() {
@@ -223,66 +223,6 @@ function build_reverse_links(node){
   }
 }
 
-
-
-function ajax_poll(poll_time){
-  setTimeout(function() {
-    $.getJSON(ajax_url, function(json) {
-      needs_update = false;
-
-      //Check Remove nodes
-      remove_nodes(nodes, json.nodes);
-
-      //Check for updates and new nodes
-      json.nodes.forEach(function(d){
-        var current_node = findNode(d.name);
-        //Check if node already exists
-        if (current_node) {
-          //Status has changed, image should be updated
-          if (current_node.image !== d.image){
-            current_node.image = d.image;
-            var this_image = d3.select("#image_"+current_node.name);
-            this_image
-              .transition()
-              .attr("x", function(d) { return d.image_x + 5; })
-              .duration(100)
-              .transition()
-              .attr("x", function(d) { return d.image_x - 5; })
-              .duration(100)
-              .transition()
-              .attr("x", function(d) { return d.image_x + 5; })
-              .duration(100)
-              .transition()
-              .attr("x", function(d) { return d.image_x - 5; })
-              .duration(100)
-              .transition()
-              .attr("xlink:href", d.image)
-              .transition()
-              .attr("x", function(d) { return d.image_x; })
-              .duration(100)
-              .ease("bounce");
-          }
-
-          //Status has changed, update info_box
-          current_node.info_box = d.info_box;
-
-        } else {
-          addNode(d);
-          build_links();
-        }
-      });
-
-      //if any updates needed, do update now
-      if (needs_update === true){
-        update();
-      }
-    });
-    //if no nodes still in progress, slow AJAX polling
-    poll_time = 3000
-    ajax_poll(poll_time);
-  }, poll_time);
-}
-
 if ($(container).length){
   var width = $(container).width(),
     height = 500,
@@ -316,20 +256,16 @@ if ($(container).length){
     links = force.links();
     
   svg.on("click", function() {
-    $("#detail_box").removeClass('selected_detail_box');
     node_selected = false;
 	$("#node_icon").html('');
     $("#node_info").html('');
     $('#opt_bar').hide();
+	$('#detail_box').perfectScrollbar('destroy');
   });
 
   build_links();
   update();
-
-  //If status is In Progress, start AJAX polling
-  var poll_time = 3000;
-//  ajax_poll(poll_time);
-
+  
 	//resize the canvas when the window is resized.
 	$(window).resize(function(){
  		var width = $(container).width();
