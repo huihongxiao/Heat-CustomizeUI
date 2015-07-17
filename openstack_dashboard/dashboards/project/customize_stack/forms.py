@@ -149,7 +149,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
             cls = getattr(mod, cls_name)
         except Exception as ex:
             raise ex
-        self.res = cls(self.request)
+        self.res_cls = cls(self.request)
         self._build_parameter_fields(parameters, resource)
 
     def _build_parameter_fields(self, params, resource):
@@ -159,7 +159,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
                     params[prop_name]['Default'] = resource.get(prop_name)
 
         self.fields['resource_type'].initial = params.pop('resource_type')
-        fields = self.res.generate_prop_fields(params)
+        fields = self.res_cls.generate_prop_fields(params)
         for key, value in fields.items():
             self.fields[key] = value
     
@@ -183,16 +183,11 @@ class ModifyResourceForm(forms.SelfHandlingForm):
     def handle(self, request, data, **kwargs):
         data.pop('parameters')
         LOG.info('Finalized Resource Parameters %s' % data)
-        if data['resource_type'] == 'OS::Nova::Server':
-            data['networks'] = [{'network': data['networks']}]
-            files = self.request.FILES
-            if files.get('user_data'):
-                path = project_api.save_user_file(self.request.user.id, files.get('user_data'))
-                data['user_data'] = { 'get_file': 'file://' + path }
-        if self.origin_resource :
-            project_api.modify_resource_in_draft(self.request, data, self.origin_resource['resource_name'])
+        res_data = self.res_cls.generate_res_data(data)
+        if self.origin_resource:
+            project_api.modify_resource_in_draft(self.request, res_data, self.origin_resource['resource_name'])
         else :
-            project_api.add_resource_to_draft(self.request, data)
+            project_api.add_resource_to_draft(self.request, res_data)
         # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
         # request so that we can chain it as an input to the next view...
         # but hey, it totally works.

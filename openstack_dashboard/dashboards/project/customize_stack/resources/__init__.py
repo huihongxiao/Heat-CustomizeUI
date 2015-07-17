@@ -10,6 +10,8 @@ from openstack_dashboard.dashboards.project.images \
     import utils as image_utils
 from openstack_dashboard.dashboards.project.instances \
     import utils as instance_utils
+from openstack_dashboard.dashboards.project.customize_stack \
+    import api as project_api
 
 class BaseResource(object):
 
@@ -26,8 +28,8 @@ class BaseResource(object):
         for prop_name, prop_data in params.items():
             if prop_name not in self.properties:
                 continue
-            if hasattr(self, '_handle_prop'):
-                handler = getattr(self, '_handle_prop')
+            if hasattr(self, 'handle_prop'):
+                handler = getattr(self, 'handle_prop')
                 field = handler(prop_name, prop_data)
             else:
                 field = self._handle_common_prop(prop_name, prop_data)
@@ -36,6 +38,18 @@ class BaseResource(object):
                 fields[prop_name] = field
 
         return fields
+
+    def generate_res_data(self, data):
+        ret = {'depends_on': None}
+        for key, value in data.items():
+            if hasattr(self, 'handle_resource'):
+                handler = getattr(self, 'handle_resource')
+                val = handler(key, value)
+            else:
+                val = value
+            if val:
+                ret[key] = val
+        return ret
 
     def _handle_common_prop(self, prop_name, prop_data):
         prop_form = None
@@ -99,3 +113,6 @@ class BaseResource(object):
         attributes['data-switch-on'] = prefix + 'source'
         attributes['data-' + prefix + 'source-' + input_type] = name
         return attributes
+
+    def save_user_file(self, file):
+        return project_api.save_user_file(self.request.user.id, file)

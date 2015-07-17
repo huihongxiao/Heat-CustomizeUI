@@ -9,9 +9,9 @@ class Resource(resources.BaseResource):
         super(Resource, self).__init__(request)
         self.resource_type = 'OS::Nova::Server'
         self.properties = ['image', 'flavor', 'networks', 'key_name',
-                                'user_data_format', 'user_data']
+                           'user_data_format', 'user_data']
 
-    def _handle_prop(self, prop_name, prop_data):
+    def handle_prop(self, prop_name, prop_data):
         field_args = {
             'initial': prop_data.get('Default', None),
             'label': prop_data.get('Label', prop_name),
@@ -48,3 +48,17 @@ class Resource(resources.BaseResource):
             field = self._handle_common_prop(prop_name, prop_data)
 
         return field
+
+    def handle_resource(self, name, value):
+
+        if name == 'networks':
+            return [{'network': value}]
+        elif name == 'user_data':
+            files = self.request.FILES
+            if files.get('user_data'):
+                path = self.save_user_file(files.get('user_data'))
+                return {'get_file': 'file://' + path}
+            else:
+                return None
+        else:
+            return value
