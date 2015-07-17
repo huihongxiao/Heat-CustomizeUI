@@ -157,11 +157,11 @@ def del_resource_from_draft(request, resource_name):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     resources = _get_resources_from_file(request.user.id)
+    # import ipdb;ipdb.set_trace()
     for idx, resource in enumerate(resources):
         if resource['resource_name'] == resource_name:
-            resource_idx = idx
-        break
-    resources.pop(resource_idx)
+            resources.pop(idx)
+            break
     del_dependencies(resources, resource_name)
     if mutex.acquire(request.user.id):
         f = open(file_name, 'wb')
