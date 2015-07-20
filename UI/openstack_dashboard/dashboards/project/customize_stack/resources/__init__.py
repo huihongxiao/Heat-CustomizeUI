@@ -116,3 +116,13 @@ class BaseResource(object):
 
     def save_user_file(self, file):
         return project_api.save_user_file(self.request.user.id, file)
+
+    def filter_resource(self, resource_types=None):
+        ret = []
+        resources = project_api._get_resources_from_file(self.request.user.id)
+        if resource_types is None:
+            return [(jsonutils.dumps({"get_resource": res.get('resource_name')}), res.get('resource_name'))
+                    for res in resources]
+        else:
+            return [(jsonutils.dumps({"get_resource": res.get('resource_name')}), res.get('resource_name'))
+                    for res in resources if res.get('resource_type') in resource_types]

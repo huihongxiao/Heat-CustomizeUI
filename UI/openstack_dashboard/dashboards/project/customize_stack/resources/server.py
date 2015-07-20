@@ -46,11 +46,9 @@ class Resource(resources.BaseResource):
                 required=False)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
-
         return field
 
     def handle_resource(self, name, value):
-
         if name == 'networks':
             return [{'network': value}]
         elif name == 'user_data':
