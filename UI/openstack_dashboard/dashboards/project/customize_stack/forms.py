@@ -26,7 +26,7 @@ LOG = logging.getLogger(__name__)
 resource_type_map = {
     "OS::Nova::Server": 'server.Resource',
     "OS::Cinder::Volume": 'cinder.Volume',
-    "OS::Cinder::VolumeAttachment": 'cinder.VolumeAttachement',
+    "OS::Cinder::VolumeAttachment": 'cinder.VolumeAttachment',
     "OS::Heat::SoftwareConfig": 'software.SoftwareConfig',
     "OS::Heat::SoftwareDeployment": 'software.SoftwareDeployment',
 }
@@ -230,7 +230,7 @@ class ClearCanvasForm(forms.SelfHandlingForm):
         name = _('Clear the canvas')
 
     def handle(self, request, data):
-        project_api.clean_template_folder(self.request.user.id)
+        project_api.clean_template_folder(self.request.user.id, only_template=True)
         return True
     
 class DeleteResourceForm(forms.SelfHandlingForm):

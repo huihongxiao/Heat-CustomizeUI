@@ -42,7 +42,7 @@ class Mutex(object):
 
 mutex = Mutex()
 
-def clean_template_folder(user):
+def clean_template_folder(user, only_template=False):
     dirname = file_path % {'user': user}
     file_name = os.path.join(dirname, 'cstack.data')
     if not os.path.exists(dirname):
@@ -50,8 +50,9 @@ def clean_template_folder(user):
     if os.path.isfile(file_name):
         if mutex.acquire(user):
             LOG.info('Clear the draft template.')
-            for f in [ff for ff in os.listdir(dirname)]:
-                os.remove(os.path.join(dirname, f))
+            if not only_template:
+                for f in [ff for ff in os.listdir(dirname)]:
+                    os.remove(os.path.join(dirname, f))
             f = open(file_name, 'wb')
             pickle.dump([], f)
             f.close()
@@ -82,7 +83,6 @@ def _load_files_from_folder(user):
                     for ff in os.listdir(dirname)
                     if ff != 'cstack.data']
     for ff in filelist:
-        # import ipdb;ipdb.set_trace()
         f = open(ff, 'r')
         content = f.read()
         f.close()
@@ -157,7 +157,6 @@ def del_resource_from_draft(request, resource_name):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     resources = _get_resources_from_file(request.user.id)
-    # import ipdb;ipdb.set_trace()
     for idx, resource in enumerate(resources):
         if resource['resource_name'] == resource_name:
             resources.pop(idx)
@@ -232,7 +231,11 @@ def _generate_template(resources):
 
         for key, value in resource.items():
             if value:
-                temp_res[res_name]['properties'][key] = value
+                try:
+                    val = json.loads(value)
+                except Exception:
+                    val = value
+                temp_res[res_name]['properties'][key] = val
 
     return json.loads(json.dumps(template))
 
