@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 
 from django.forms import ValidationError  # noqa
 from django.utils.translation import ugettext_lazy as _
@@ -13,23 +14,38 @@ from horizon import forms
 from horizon import messages
 
 from openstack_dashboard import api
-from openstack_dashboard.dashboards.project.images \
-    import utils as image_utils
-from openstack_dashboard.dashboards.project.instances \
-    import utils as instance_utils
 from openstack_dashboard.dashboards.project.customize_stack \
     import api as project_api
+from openstack_dashboard.dashboards.project.customize_stack.common \
+    import plugin_loader
+from openstack_dashboard.dashboards.project.customize_stack \
+    import resources  #noqa
 
 
 LOG = logging.getLogger(__name__)
 
-resource_type_map = {
-    "OS::Nova::Server": 'server.Resource',
-    "OS::Cinder::Volume": 'cinder.Volume',
-    "OS::Cinder::VolumeAttachment": 'cinder.VolumeAttachment',
-    "OS::Heat::SoftwareConfig": 'software.SoftwareConfig',
-    "OS::Heat::SoftwareDeployment": 'software.SoftwareDeployment',
-}
+# resource_type_map = {
+#     "OS::Nova::Server": 'server.Resource',
+#     "OS::Cinder::Volume": 'cinder.Volume',
+#     "OS::Cinder::VolumeAttachment": 'cinder.VolumeAttachment',
+#     "OS::Heat::SoftwareConfig": 'software.SoftwareConfig',
+#     "OS::Heat::SoftwareDeployment": 'software.SoftwareDeployment',
+# }
+
+
+def get_resource_mapping():
+    # import ipdb;ipdb.set_trace()
+    ret = {}
+    resources = sys.modules['openstack_dashboard.dashboards.project.customize_stack.resources']
+    mods = list(plugin_loader.load_modules(resources))
+    for mod in mods:
+        if hasattr(mod, 'resource_mapping'):
+            fun = getattr(mod, 'resource_mapping')
+            res_map = fun()
+            ret = dict(ret.items() + res_map.items())
+    return ret
+
+resource_type_map = get_resource_mapping()
 
 def load_module(name):
     mod = __import__(name)
@@ -139,17 +155,17 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         LOG.info('Original Resource Parameters %s' % parameters)
         prop_type = parameters['resource_type']
         target_cls = resource_type_map.get(prop_type, None)
-        if target_cls is None:
-            target_cls = prop_type.replace('::', '_')+'.Resource'
-        module, cls_name = target_cls.split('.')
-        try:
-            mod = load_module('openstack_dashboard.dashboards.'
-                              'project.customize_stack.'
-                              'resources.'+module)
-            cls = getattr(mod, cls_name)
-        except Exception as ex:
-            raise ex
-        self.res_cls = cls(self.request)
+        # if target_cls is None:
+        #     target_cls = prop_type.replace('::', '_')+'.Resource'
+        # module, cls_name = target_cls.split('.')
+        # try:
+        #     mod = load_module('openstack_dashboard.dashboards.'
+        #                       'project.customize_stack.'
+        #                       'resources.'+module)
+        #     cls = getattr(mod, cls_name)
+        # except Exception as ex:
+        #     raise ex
+        self.res_cls = target_cls(self.request)
         self._build_parameter_fields(parameters, resource)
 
     def _build_parameter_fields(self, params, resource):

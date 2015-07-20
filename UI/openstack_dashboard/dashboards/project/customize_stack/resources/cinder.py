@@ -34,3 +34,10 @@ class VolumeAttachment(resources.BaseResource):
             field = self._handle_common_prop(prop_name, prop_data)
 
         return field
+
+
+def resource_mapping():
+    return {
+        'OS::Cinder::Volume': Volume,
+        'OS::Cinder::VolumeAttachment': VolumeAttachment,
+    }

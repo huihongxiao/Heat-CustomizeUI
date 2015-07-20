@@ -60,3 +60,8 @@ class Resource(resources.BaseResource):
                 return None
         else:
             return value
+
+def resource_mapping():
+    return {
+        'OS::Nova::Server': Resource
+    }
