@@ -102,7 +102,7 @@ class PreviewResourceDetailsView(forms.ModalFormMixin, views.HorizonTemplateView
         context['resource_details'] = self.kwargs['resource_details']
         return context
 
-class ExportResourceView(forms.ModalFormMixin, views.HorizonTemplateView):
+class ExporttemplateView(forms.ModalFormMixin, views.HorizonTemplateView):
     def get(self, request, **response_kwargs):
         data = project_api.export_template(request)
         response = HttpResponse(data, content_type='application/text')

@@ -13,6 +13,6 @@ urlpatterns = patterns(
     url(r'^get_draft_template_data$', views.JSONView.as_view(), name='draft_template_data'),
     url(r'^launch_stack$', views.LaunchStackView.as_view(), name='launch_stack'),
     url(r'^delete_resource/(?P<resource_name>[^/]+)/$', views.DeleteResourceView.as_view(), name='delete_resource'),
-    url(r'^export_resource$', views.ExportResourceView.as_view(), name='export_resource'),
+    url(r'^export_template$', views.ExporttemplateView.as_view(), name='export_template'),
     url(r'^edit_resource/(?P<resource_name>[^/]+)/$', views.EditResourceView.as_view(), name='edit_resource') 
 )
