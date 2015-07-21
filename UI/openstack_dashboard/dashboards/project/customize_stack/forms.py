@@ -81,6 +81,7 @@ class SelectResourceForm(forms.SelfHandlingForm):
         try:
             # resource = api.heat.resource_type_generate_template(request, resource_type)
             # resource_properties = resource['Parameters']
+            # import ipdb;ipdb.set_trace()
             resource = api.heat.resource_type_get(request, resource_type)
             resource_properties = resource['properties']
         except Exception:
@@ -148,16 +149,6 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         LOG.info('Original Resource Parameters %s' % parameters)
         prop_type = parameters['resource_type']
         target_cls = resource_type_map.get(prop_type, None)
-        # if target_cls is None:
-        #     target_cls = prop_type.replace('::', '_')+'.Resource'
-        # module, cls_name = target_cls.split('.')
-        # try:
-        #     mod = load_module('openstack_dashboard.dashboards.'
-        #                       'project.customize_stack.'
-        #                       'resources.'+module)
-        #     cls = getattr(mod, cls_name)
-        # except Exception as ex:
-        #     raise ex
         self.res_cls = target_cls(self.request)
         self._build_parameter_fields(parameters, resource)
 

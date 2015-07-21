@@ -4,7 +4,7 @@ import logging
 from django.utils.translation import ugettext_lazy as _
 from openstack_dashboard.dashboards.project.customize_stack import resources
 
-class Resource(resources.BaseResource):
+class Server(resources.BaseResource):
     def __init__(self, request):
         super(Resource, self).__init__(request)
         self.resource_type = 'OS::Nova::Server'
@@ -56,13 +56,13 @@ class Resource(resources.BaseResource):
             files = self.request.FILES
             if files.get('user_data'):
                 path = self.save_user_file(files.get('user_data'))
-                return {'get_file': 'file://' + path}
+                return name, {'get_file': 'file://' + path}
             else:
-                return None
+                return None, None
         else:
-            return value
+            return name, value
 
 def resource_mapping():
     return {
-        'OS::Nova::Server': Resource
+        'OS::Nova::Server': Server
     }

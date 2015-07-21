@@ -36,11 +36,11 @@ class SoftwareConfig(resources.BaseResource):
             files = self.request.FILES
             if files.get('config'):
                 path = self.save_user_file(files.get('config'))
-                return {'get_file': 'file://' + path}
+                return name, {'get_file': 'file://' + path}
             else:
-                return None
+                return None, None
         else:
-            return value
+            return name, value
 
 class SoftwareDeployment(resources.BaseResource):
     def __init__(self, request):

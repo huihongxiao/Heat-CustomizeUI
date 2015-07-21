@@ -27,7 +27,7 @@ class AutoScalingGroup(resources.BaseResource):
                 label=_('Nested Template File'),
                 help_text=_('A template to upload.'),
                 widget=self.forms.FileInput(attrs=attributes),
-                required=False)
+                required=True)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
         return field
@@ -37,11 +37,11 @@ class AutoScalingGroup(resources.BaseResource):
             files = self.request.FILES
             if files.get('resource'):
                 path = self.save_user_file(files.get('resource'))
-                return {'get_file': 'file://' + path}
+                return name, path
             else:
-                return None
+                return None, None
         else:
-            return value
+            return name, value
 
 
 class ScalingPolicy(resources.BaseResource):

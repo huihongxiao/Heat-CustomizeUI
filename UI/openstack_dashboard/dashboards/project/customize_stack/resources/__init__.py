@@ -44,11 +44,12 @@ class BaseResource(object):
         for key, value in data.items():
             if hasattr(self, 'handle_resource'):
                 handler = getattr(self, 'handle_resource')
-                val = handler(key, value)
+                name, val = handler(key, value)
             else:
+                name = key
                 val = value
             if val:
-                ret[key] = val
+                ret[name] = val
         return ret
 
     def _handle_common_prop(self, prop_name, prop_data):
@@ -66,68 +67,59 @@ class BaseResource(object):
             field_args['widget'] = forms.PasswordInput()
         if 'constraints' in prop_data:
             cons = prop_data['constraints']
-            if 'allowed_values' in cons:
-                choices = map(lambda x: (x, x), cons['allowed_values'])
-                field_args['choices'] = choices
-                prop_form = self.forms.ChoiceField
-            if 'range' in cons:
-                min_max = cons['range']
-                if 'min' in min_max:
-                    field_args['min_value'] = int(min_max['min'])
-                if 'max' in min_max:
-                    field_args['max_value'] = int(min_max['max'])
-            if 'length' in cons:
-                min_max = cons['length']
-                if 'min' in min_max:
-                    field_args['min_length'] = int(min_max['min'])
-                    field_args['required'] = min_max.get('min', 0) > 0
-                if 'max' in min_max:
-                    field_args['max_length'] = int(min_max['max'])
-
-        # if 'AllowedValues' in prop_data:
-        #     choices = map(lambda x: (x, x), prop_data['AllowedValues'])
-        #     field_args['choices'] = choices
-        #     prop_form = self.forms.ChoiceField
-        # if 'Default' in prop_data:
-        #     field_args['initial'] = six.text_type(prop_data['Default'])
-        # if 'MinLength' in prop_data:
-        #     field_args['min_length'] = int(prop_data['MinLength'])
-        #     field_args['required'] = prop_data.get('MinLength', 0) > 0
-        # if 'MaxLength' in prop_data:
-        #     field_args['max_length'] = int(prop_data['MaxLength'])
-        #
-        # if 'MinValue' in prop_data:
-        #     field_args['min_value'] = int(prop_data['MinValue'])
-        # if 'MaxValue' in prop_data:
-        #     field_args['max_value'] = int(prop_data['MaxValue'])
-        # if 'default' in prop_data:
-        #     field_args['initial'] = six.text_type(prop_data['default'])
-
+            for con in cons:
+                if 'allowed_values' in con:
+                    choices = map(lambda x: (x, x), con['allowed_values'])
+                    field_args['choices'] = choices
+                    prop_form = self.forms.ChoiceField
+                if 'range' in con:
+                    min_max = con['range']
+                    if 'min' in min_max:
+                        field_args['min_value'] = int(min_max['min'])
+                    if 'max' in min_max:
+                        field_args['max_value'] = int(min_max['max'])
+                if 'length' in con:
+                    min_max = con['length']
+                    if 'min' in min_max:
+                        field_args['min_length'] = int(min_max['min'])
+                        field_args['required'] = min_max.get('min', 0) > 0
+                    if 'max' in min_max:
+                        field_args['max_length'] = int(min_max['max'])
         if prop_form:
             field = prop_form(**field_args)
-        elif prop_type in ('number', 'integer'):
+        elif prop_type in ('integer'):
             field = forms.IntegerField(**field_args)
+        elif prop_type in ('number'):
+            field = forms.FloatField(**field_args)
         elif prop_type in ('boolean'):
             field = forms.BooleanField(**field_args)
+        # elif prop_type in ('map'):
+        #     fields = []
+        #     for name, data in prop_type['map']:
+        #         fields.append(self._handle_common_prop(name, data))
+        #     field_args['fields'] = fields
+        #     field = forms.ComboField(**field_args)
+        # elif prop_type in ('list'):
+        #     field = forms.MultiValueField(**field_args)
         else:
             field = forms.CharField(**field_args)
         return field
 
     @staticmethod
-    def _populate_flavor_choices(request):
-        return instance_utils.flavor_field_data(request, True)
+    def _populate_flavor_choices(request, include_empty=True):
+        return instance_utils.flavor_field_data(request, include_empty)
 
     @staticmethod
-    def _populate_image_choices(request):
-        return image_utils.image_field_data(request, True)
+    def _populate_image_choices(request, include_empty=True):
+        return image_utils.image_field_data(request, include_empty)
 
     @staticmethod
-    def _populate_network_choices(request):
-        return instance_utils.network_field_data(request, True)
+    def _populate_network_choices(request, include_empty=True):
+        return instance_utils.network_field_data(request, include_empty)
 
     @staticmethod
-    def _populate_keypair_choices(request):
-        return instance_utils.keypair_field_data(request, True)
+    def _populate_keypair_choices(request, include_empty=True):
+        return instance_utils.keypair_field_data(request, include_empty)
 
     @staticmethod
     def _create_upload_form_attributes(prefix, input_type, name):
@@ -140,12 +132,15 @@ class BaseResource(object):
     def save_user_file(self, file):
         return project_api.save_user_file(self.request.user.id, file)
 
-    def filter_resource(self, resource_types=None):
-        ret = []
+    def filter_resource(self, resource_types=None, include_empty=False):
         resources = project_api._get_resources_from_file(self.request.user.id)
         if resource_types is None:
-            return [(jsonutils.dumps({"get_resource": res.get('resource_name')}), res.get('resource_name'))
+            ret = [(jsonutils.dumps({"get_resource": res.get('resource_name')}), res.get('resource_name'))
                     for res in resources]
         else:
-            return [(jsonutils.dumps({"get_resource": res.get('resource_name')}), res.get('resource_name'))
+            ret = [(jsonutils.dumps({"get_resource": res.get('resource_name')}), res.get('resource_name'))
                     for res in resources if res.get('resource_type') in resource_types]
+        if include_empty:
+            return [(None, "None"), ] + ret
+        else:
+            return ret
