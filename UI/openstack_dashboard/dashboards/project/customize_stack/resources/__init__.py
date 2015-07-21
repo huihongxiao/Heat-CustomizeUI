@@ -54,37 +54,60 @@ class BaseResource(object):
     def _handle_common_prop(self, prop_name, prop_data):
         prop_form = None
         field_args = {
-            'initial': prop_data.get('Default', None),
+            'initial': prop_data.get('default', None),
             'label': prop_data.get('Label', prop_name),
-            'help_text': prop_data.get('Description', '')
+            'help_text': prop_data.get('description', ''),
+            'required': prop_data.get('required', False)
         }
 
-        prop_type = prop_data.get('Type', None)
+        prop_type = prop_data.get('type', None)
         hidden = strutils.bool_from_string(prop_data.get('NoEcho', False))
         if hidden:
             field_args['widget'] = forms.PasswordInput()
-        if 'AllowedValues' in prop_data:
-            choices = map(lambda x: (x, x), prop_data['AllowedValues'])
-            field_args['choices'] = choices
-            prop_form = self.forms.ChoiceField
-        if 'Default' in prop_data:
-            field_args['initial'] = six.text_type(prop_data['Default'])
-        if 'MinLength' in prop_data:
-            field_args['min_length'] = int(prop_data['MinLength'])
-            field_args['required'] = prop_data.get('MinLength', 0) > 0
-        if 'MaxLength' in prop_data:
-            field_args['max_length'] = int(prop_data['MaxLength'])
+        if 'constraints' in prop_data:
+            cons = prop_data['constraints']
+            if 'allowed_values' in cons:
+                choices = map(lambda x: (x, x), cons['allowed_values'])
+                field_args['choices'] = choices
+                prop_form = self.forms.ChoiceField
+            if 'range' in cons:
+                min_max = cons['range']
+                if 'min' in min_max:
+                    field_args['min_value'] = int(min_max['min'])
+                if 'max' in min_max:
+                    field_args['max_value'] = int(min_max['max'])
+            if 'length' in cons:
+                min_max = cons['length']
+                if 'min' in min_max:
+                    field_args['min_length'] = int(min_max['min'])
+                    field_args['required'] = min_max.get('min', 0) > 0
+                if 'max' in min_max:
+                    field_args['max_length'] = int(min_max['max'])
 
-        if 'MinValue' in prop_data:
-            field_args['min_value'] = int(prop_data['MinValue'])
-        if 'MaxValue' in prop_data:
-            field_args['max_value'] = int(prop_data['MaxValue'])
+        # if 'AllowedValues' in prop_data:
+        #     choices = map(lambda x: (x, x), prop_data['AllowedValues'])
+        #     field_args['choices'] = choices
+        #     prop_form = self.forms.ChoiceField
+        # if 'Default' in prop_data:
+        #     field_args['initial'] = six.text_type(prop_data['Default'])
+        # if 'MinLength' in prop_data:
+        #     field_args['min_length'] = int(prop_data['MinLength'])
+        #     field_args['required'] = prop_data.get('MinLength', 0) > 0
+        # if 'MaxLength' in prop_data:
+        #     field_args['max_length'] = int(prop_data['MaxLength'])
+        #
+        # if 'MinValue' in prop_data:
+        #     field_args['min_value'] = int(prop_data['MinValue'])
+        # if 'MaxValue' in prop_data:
+        #     field_args['max_value'] = int(prop_data['MaxValue'])
+        # if 'default' in prop_data:
+        #     field_args['initial'] = six.text_type(prop_data['default'])
 
         if prop_form:
             field = prop_form(**field_args)
-        elif prop_type in ('Number', 'Integer'):
+        elif prop_type in ('number', 'integer'):
             field = forms.IntegerField(**field_args)
-        elif prop_type in ('Boolean', 'boolean'):
+        elif prop_type in ('boolean'):
             field = forms.BooleanField(**field_args)
         else:
             field = forms.CharField(**field_args)

@@ -24,17 +24,8 @@ from openstack_dashboard.dashboards.project.customize_stack \
 
 LOG = logging.getLogger(__name__)
 
-# resource_type_map = {
-#     "OS::Nova::Server": 'server.Resource',
-#     "OS::Cinder::Volume": 'cinder.Volume',
-#     "OS::Cinder::VolumeAttachment": 'cinder.VolumeAttachment',
-#     "OS::Heat::SoftwareConfig": 'software.SoftwareConfig',
-#     "OS::Heat::SoftwareDeployment": 'software.SoftwareDeployment',
-# }
-
 
 def get_resource_mapping():
-    # import ipdb;ipdb.set_trace()
     ret = {}
     resources = sys.modules['openstack_dashboard.dashboards.project.customize_stack.resources']
     mods = list(plugin_loader.load_modules(resources))
@@ -88,8 +79,10 @@ class SelectResourceForm(forms.SelfHandlingForm):
     def _get_resource_type(self, request, resource_type):
         resource_properties = {}
         try:
-            resource = api.heat.resource_type_generate_template(request, resource_type)
-            resource_properties = resource['Parameters']
+            # resource = api.heat.resource_type_generate_template(request, resource_type)
+            # resource_properties = resource['Parameters']
+            resource = api.heat.resource_type_get(request, resource_type)
+            resource_properties = resource['properties']
         except Exception:
             msg = _('Unable to retrieve details of resource type %(rt)s' % {'rt': resource_type})
             exceptions.handle(request, msg)

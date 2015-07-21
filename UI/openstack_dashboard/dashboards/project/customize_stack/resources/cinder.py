@@ -18,9 +18,10 @@ class VolumeAttachment(resources.BaseResource):
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
-            'initial': prop_data.get('Default', None),
+            'initial': prop_data.get('default', None),
             'label': prop_data.get('Label', prop_name),
-            'help_text': prop_data.get('Description', '')
+            'help_text': prop_data.get('description', ''),
+            'required': prop_data.get('required', False)
         }
         if prop_name == 'instance_uuid':
             choices = self.filter_resource(['OS::Nova::Server'])

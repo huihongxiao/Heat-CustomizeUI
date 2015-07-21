@@ -4,11 +4,12 @@ import logging
 from django.utils.translation import ugettext_lazy as _
 from openstack_dashboard.dashboards.project.customize_stack import resources
 
-class SoftwareConfig(resources.BaseResource):
+class AutoScalingGroup(resources.BaseResource):
     def __init__(self, request):
-        super(SoftwareConfig, self).__init__(request)
-        self.resource_type = 'OS::Heat::SoftwareConfig'
-        self.properties = ['config']
+        super(AutoScalingGroup, self).__init__(request)
+        self.resource_type = 'OS::Heat::AutoScalingGroup'
+        self.properties = ['cooldown', 'max_size', 'min_size',
+                           'resource', 'desired_capacity']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -17,14 +18,14 @@ class SoftwareConfig(resources.BaseResource):
             'help_text': prop_data.get('description', ''),
             'required': prop_data.get('required', False)
         }
-        if prop_name == 'config':
+        if prop_name == 'resource':
             attributes = self._create_upload_form_attributes(
-                'config',
+                'resource',
                 'file',
-                _('Script File'))
+                _('Nested Template File'))
             field = self.forms.FileField(
-                label=_('Script File'),
-                help_text=_('A script to upload.'),
+                label=_('Nested Template File'),
+                help_text=_('A template to upload.'),
                 widget=self.forms.FileInput(attrs=attributes),
                 required=False)
         else:
@@ -32,21 +33,23 @@ class SoftwareConfig(resources.BaseResource):
         return field
 
     def handle_resource(self, name, value):
-        if name == 'config':
+        if name == 'resource':
             files = self.request.FILES
-            if files.get('config'):
-                path = self.save_user_file(files.get('config'))
+            if files.get('resource'):
+                path = self.save_user_file(files.get('resource'))
                 return {'get_file': 'file://' + path}
             else:
                 return None
         else:
             return value
 
-class SoftwareDeployment(resources.BaseResource):
+
+class ScalingPolicy(resources.BaseResource):
     def __init__(self, request):
-        super(SoftwareDeployment, self).__init__(request)
-        self.resource_type = 'OS::Heat::SoftwareDeployment'
-        self.properties = ['config', 'server']
+        super(ScalingPolicy, self).__init__(request)
+        self.resource_type = 'OS::Heat::ScalingPolicy'
+        # self.properties = ['adjustment_type', 'auto_scaling_group_id',
+        #                    'cooldown', 'scaling_adjustment', 'min_adjustment_step']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -55,12 +58,8 @@ class SoftwareDeployment(resources.BaseResource):
             'help_text': prop_data.get('description', ''),
             'required': prop_data.get('required', False)
         }
-        if prop_name == 'server':
-            choices = self.filter_resource(['OS::Nova::Server'])
-            field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
-        elif prop_name == 'config':
-            choices = self.filter_resource(['OS::Heat::SoftwareConfig'])
+        if prop_name == 'auto_scaling_group_id':
+            choices = self.filter_resource(['OS::Heat::AutoScalingGroup'])
             field_args['choices'] = choices
             field = self.forms.ChoiceField(**field_args)
         else:
@@ -70,6 +69,6 @@ class SoftwareDeployment(resources.BaseResource):
 
 def resource_mapping():
     return {
-        'OS::Heat::SoftwareConfig': SoftwareConfig,
-        'OS::Heat::SoftwareDeployment': SoftwareDeployment,
+        'OS::Heat::AutoScalingGroup': AutoScalingGroup,
+        'OS::Heat::ScalingPolicy': ScalingPolicy,
     }
