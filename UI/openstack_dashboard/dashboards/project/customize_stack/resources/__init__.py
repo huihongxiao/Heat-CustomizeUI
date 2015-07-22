@@ -12,6 +12,9 @@ from openstack_dashboard.dashboards.project.instances \
     import utils as instance_utils
 from openstack_dashboard.dashboards.project.customize_stack \
     import api as project_api
+from openstack_dashboard import api
+from horizon import exceptions
+from django.utils.translation import ugettext_lazy as _
 
 
 class ListWidget(forms.MultiWidget):
@@ -200,7 +203,21 @@ class BaseResource(object):
         return instance_utils.keypair_field_data(self.request, include_empty)
 
     def _populate_availabilityzone_choices(self, include_empty=True):
-        return instance_utils.availability_zone_list(self.request)
+        try:
+            zones = api.nova.availability_zone_list(self.request)
+        except Exception:
+            zones = []
+            exceptions.handle(self.request,
+                              _('Unable to retrieve availability zones.'))
+
+        zone_list = [(zone.zoneName, zone.zoneName)
+                     for zone in zones if zone.zoneState['available']]
+        zone_list.sort()
+        if not zone_list:
+            zone_list.insert(0, ("", _("No availability zones found")))
+        elif len(zone_list) > 1:
+            zone_list.insert(0, ("", _("Any Availability Zone")))
+        return zone_list
 
     @staticmethod
     def _create_upload_form_attributes(prefix, input_type, name):
