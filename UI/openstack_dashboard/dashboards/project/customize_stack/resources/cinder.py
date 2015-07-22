@@ -14,7 +14,6 @@ class VolumeAttachment(resources.BaseResource):
     def __init__(self, request):
         super(VolumeAttachment, self).__init__(request)
         self.resource_type = 'OS::Cinder::VolumeAttachment'
-        self.properties = ['instance_uuid', 'volume_id']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {

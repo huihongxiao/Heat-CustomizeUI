@@ -13,6 +13,65 @@ from openstack_dashboard.dashboards.project.instances \
 from openstack_dashboard.dashboards.project.customize_stack \
     import api as project_api
 
+
+class ListWidget(forms.MultiWidget):
+    def __init__(self, widgets=None, attrs=None, labels=None):
+        super(ListWidget, self).__init__(widgets, attrs)
+        self.labels = labels
+
+    def decompress(self, value):
+        if value:
+            return value
+        return ''
+
+    def format_output(self, rendered_widgets):
+        ret = ''
+        for i in range(len(rendered_widgets)):
+            if self.labels[i]:
+                ret += ('<label>%s</label>%s' % (self.labels[i],
+                                                 rendered_widgets[i]))
+            else:
+                ret += '%s' % rendered_widgets[i]
+        return ret
+
+
+class ListField(forms.MultiValueField):
+    def __init__(self, fields=(), *args, **kwargs):
+        super(ListField, self).__init__(*args, **kwargs)
+        for f in fields:
+            f.required = False
+        self.fields = fields
+        widgets = [ff.widget for ff in self.fields]
+        self.labels = [ff.label for ff in self.fields]
+        self.widget = ListWidget(widgets=widgets,
+                                 labels=self.labels)
+
+    def compress(self, data_list):
+        if data_list:
+            return [data for data in data_list if data and data != 'None']
+        return []
+
+
+class MapField(forms.MultiValueField):
+    def __init__(self, fields=(), *args, **kwargs):
+        super(MapField, self).__init__(*args, **kwargs)
+        for f in fields:
+            f.required = False
+        self.fields = fields
+        widgets = [ff.widget for ff in self.fields]
+        self.labels = [ff.label for ff in self.fields]
+        self.widget = ListWidget(widgets=widgets,
+                                 labels=self.labels)
+
+    def compress(self, data_list):
+        ret = {}
+        if data_list:
+            for i in range(len(data_list)):
+                if data_list[i]:
+                    ret[self.labels[i]] = data_list[i]
+        return ret
+
+
 class BaseResource(object):
 
     def __init__(self, request):
@@ -20,12 +79,14 @@ class BaseResource(object):
         self.properties = None
         self.forms = forms
         self.request = request
+        self.ListField = ListField
+        self.invisible_properties = None
 
     def generate_prop_fields(self, params):
         fields = {}
         if self.properties is None:
             self.properties = params.keys()
-        for prop_name, prop_data in params.items():
+        for prop_name, prop_data in sorted(params.items()):
             if prop_name not in self.properties:
                 continue
             if hasattr(self, 'handle_prop'):
@@ -41,7 +102,7 @@ class BaseResource(object):
 
     def generate_res_data(self, data):
         ret = {'depends_on': None}
-        for key, value in data.items():
+        for key, value in sorted(data.items()):
             if hasattr(self, 'handle_resource'):
                 handler = getattr(self, 'handle_resource')
                 name, val = handler(key, value)
@@ -76,15 +137,17 @@ class BaseResource(object):
                     min_max = con['range']
                     if 'min' in min_max:
                         field_args['min_value'] = int(min_max['min'])
+                        if field_args.get('initial') is None:
+                            field_args['initial'] = field_args['min_value']
                     if 'max' in min_max:
                         field_args['max_value'] = int(min_max['max'])
-                if 'length' in con:
-                    min_max = con['length']
-                    if 'min' in min_max:
-                        field_args['min_length'] = int(min_max['min'])
-                        field_args['required'] = min_max.get('min', 0) > 0
-                    if 'max' in min_max:
-                        field_args['max_length'] = int(min_max['max'])
+                # if 'length' in con:
+                #     min_max = con['length']
+                #     if 'min' in min_max:
+                #         field_args['min_length'] = int(min_max['min'])
+                #         field_args['required'] = min_max.get('min', 0) > 0
+                #     if 'max' in min_max:
+                #         field_args['max_length'] = int(min_max['max'])
         if prop_form:
             field = prop_form(**field_args)
         elif prop_type in ('integer'):
@@ -93,33 +156,51 @@ class BaseResource(object):
             field = forms.FloatField(**field_args)
         elif prop_type in ('boolean'):
             field = forms.BooleanField(**field_args)
-        # elif prop_type in ('map'):
-        #     fields = []
-        #     for name, data in prop_type['map']:
-        #         fields.append(self._handle_common_prop(name, data))
-        #     field_args['fields'] = fields
-        #     field = forms.ComboField(**field_args)
-        # elif prop_type in ('list'):
-        #     field = forms.MultiValueField(**field_args)
+        elif prop_type in ('map'):
+            fields = []
+            schema = prop_data.get('schema', None)
+            if schema:
+                for name, data in sorted(schema.items()):
+                    if (self.invisible_properties and
+                                name in self.invisible_properties):
+                        continue
+                    if hasattr(self, 'handle_prop'):
+                        handler = getattr(self, 'handle_prop')
+                        ff = handler(name, data)
+                    else:
+                        ff = self._handle_common_prop(name, data)
+                    fields.append(ff)
+                field_args['fields'] = fields
+                field = MapField(**field_args)
+            else:
+                field = forms.CharField(**field_args)
+        elif prop_type in ('list'):
+            fields = []
+            schema = prop_data.get('schema', None)
+            if schema:
+                fields.append(self._handle_common_prop('', schema['*']))
+                field_args['fields'] = fields
+            else:
+                field_args['fields'] = [forms.CharField(label='')]
+            field = ListField(**field_args)
         else:
             field = forms.CharField(**field_args)
         return field
 
-    @staticmethod
-    def _populate_flavor_choices(request, include_empty=True):
-        return instance_utils.flavor_field_data(request, include_empty)
+    def _populate_flavor_choices(self, include_empty=True):
+        return instance_utils.flavor_field_data(self.request, include_empty)
 
-    @staticmethod
-    def _populate_image_choices(request, include_empty=True):
-        return image_utils.image_field_data(request, include_empty)
+    def _populate_image_choices(self, include_empty=True):
+        return image_utils.image_field_data(self.request, include_empty)
 
-    @staticmethod
-    def _populate_network_choices(request, include_empty=True):
-        return instance_utils.network_field_data(request, include_empty)
+    def _populate_network_choices(self, include_empty=True):
+        return instance_utils.network_field_data(self.request, include_empty)
 
-    @staticmethod
-    def _populate_keypair_choices(request, include_empty=True):
-        return instance_utils.keypair_field_data(request, include_empty)
+    def _populate_keypair_choices(self, include_empty=True):
+        return instance_utils.keypair_field_data(self.request, include_empty)
+
+    def _populate_availabilityzone_choices(self, include_empty=True):
+        return instance_utils.availability_zone_list(self.request)
 
     @staticmethod
     def _create_upload_form_attributes(prefix, input_type, name):
@@ -141,6 +222,6 @@ class BaseResource(object):
             ret = [(jsonutils.dumps({"get_resource": res.get('resource_name')}), res.get('resource_name'))
                     for res in resources if res.get('resource_type') in resource_types]
         if include_empty:
-            return [(None, "None"), ] + ret
+            return [('', "None"), ] + ret
         else:
             return ret

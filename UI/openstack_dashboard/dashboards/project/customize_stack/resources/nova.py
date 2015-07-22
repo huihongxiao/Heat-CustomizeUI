@@ -9,7 +9,11 @@ class Server(resources.BaseResource):
         super(Server, self).__init__(request)
         self.resource_type = 'OS::Nova::Server'
         self.properties = ['image', 'flavor', 'networks', 'key_name',
-                           'user_data_format', 'user_data']
+                           'config_drive',
+                           'user_data_format', 'user_data',
+                           'availability_zone',
+                           'software_config_transport']
+        self.invisible_properties = ['uuid']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -19,20 +23,29 @@ class Server(resources.BaseResource):
             'required': prop_data.get('required', False)
         }
         if prop_name == 'flavor':
-            choices = self._populate_flavor_choices(self.request)
+            choices = self._populate_flavor_choices()
             field_args['choices'] = choices
             field = self.forms.ChoiceField(**field_args)
         elif prop_name == 'image':
-            choices = self._populate_image_choices(self.request)
+            choices = self._populate_image_choices()
             field_args['choices'] = choices
             field = self.forms.ChoiceField(**field_args)
         elif prop_name == 'key_name':
-            choices = self._populate_keypair_choices(self.request)
+            choices = self._populate_keypair_choices()
             field_args['required'] = None
             field_args['choices'] = choices
             field = self.forms.ChoiceField(**field_args)
-        elif prop_name == 'networks':
-            choices = self._populate_network_choices(self.request)
+        elif prop_name == 'network':
+            choices = (self._populate_network_choices() +
+                       self.filter_resource(['OS::Neutron::Net']))
+            field_args['choices'] = choices
+            field = self.forms.ChoiceField(**field_args)
+        elif prop_name == 'port':
+            choices = self.filter_resource(['OS::Neutron::Port'], True)
+            field_args['choices'] = choices
+            field = self.forms.ChoiceField(**field_args)
+        elif prop_name == 'availability_zone':
+            choices = self._populate_availabilityzone_choices()
             field_args['choices'] = choices
             field = self.forms.ChoiceField(**field_args)
         elif prop_name == 'user_data':
@@ -50,9 +63,7 @@ class Server(resources.BaseResource):
         return field
 
     def handle_resource(self, name, value):
-        if name == 'networks':
-            return [{'network': value}]
-        elif name == 'user_data':
+        if name == 'user_data':
             files = self.request.FILES
             if files.get('user_data'):
                 path = self.save_user_file(files.get('user_data'))

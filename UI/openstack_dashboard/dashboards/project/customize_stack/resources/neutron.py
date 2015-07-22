@@ -25,7 +25,7 @@ class FloatingIP(resources.BaseResource):
             field_args['choices'] = choices
             field = self.forms.ChoiceField(**field_args)
         elif prop_name == 'floating_network':
-            choices = self._populate_network_choices(self.request)
+            choices = self._populate_network_choices()
             field_args['choices'] = choices
             field = self.forms.ChoiceField(**field_args)
         else:
@@ -37,8 +37,6 @@ class FloatingIPAssociation(resources.BaseResource):
     def __init__(self, request):
         super(FloatingIPAssociation, self).__init__(request)
         self.resource_type = 'OS::Neutron::FloatingIPAssociation'
-        self.properties = ['fixed_ip_address', 'floatingip_id',
-                           'port_id']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -65,6 +63,7 @@ class Port(resources.BaseResource):
         self.resource_type = 'OS::Neutron::Port'
         self.properties = ['fixed_ips', 'network',
                            'security_groups']
+        self.invisible_properties = ['subnet_id']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -74,26 +73,14 @@ class Port(resources.BaseResource):
             'required': prop_data.get('required', False)
         }
         if prop_name == 'network':
-            choices = self._populate_network_choices(self.request)
+            choices = self._populate_network_choices()
             field_args['choices'] = choices
             field = self.forms.ChoiceField(**field_args)
+        # elif prop_name == 'subnet':
+        #     choices = self._populate_network_choices()
         else:
             field = self._handle_common_prop(prop_name, prop_data)
         return field
-
-    def handle_resource(self, name, value):
-        if name in ('fixed_ips', 'security_groups'):
-            ret = []
-            data_list = value.split(',')
-            for data in data_list:
-                try:
-                    val = json.loads(data)
-                except Exception:
-                    val = data
-                ret.append(val)
-            return name, ret
-        else:
-            return name, value
 
 
 class Subnet(resources.BaseResource):
@@ -101,7 +88,7 @@ class Subnet(resources.BaseResource):
         super(Subnet, self).__init__(request)
         self.resource_type = 'OS::Neutron::Subnet'
         self.properties = ['cidr', 'dns_nameservers', 'enable_dhcp',
-                           'gateway_ip', 'network']
+                           'gateway_ip', 'network', 'allocation_pools']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -111,27 +98,12 @@ class Subnet(resources.BaseResource):
             'required': prop_data.get('required', False)
         }
         if prop_name == 'network':
-            choices = self._populate_network_choices(self.request,
-                                                     include_empty=not field_args.get('required'))
+            choices = self._populate_network_choices(True)
             field_args['choices'] = choices
             field = self.forms.ChoiceField(**field_args)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
         return field
-
-    def handle_resource(self, name, value):
-        if name in ('dns_nameservers'):
-            ret = []
-            data_list = value.split(',')
-            for data in data_list:
-                try:
-                    val = json.loads(data)
-                except Exception:
-                    val = data
-                ret.append(val)
-            return name, ret
-        else:
-            return name, value
 
 
 class HealthMonitor(resources.BaseResource):
@@ -166,7 +138,8 @@ class Pool(resources.BaseResource):
     def __init__(self, request):
         super(Pool, self).__init__(request)
         self.resource_type = 'OS::Neutron::Pool'
-        self.properties = ['lb_method', 'protocol', 'subnet', 'monitors']
+        self.properties = ['lb_method', 'protocol', 'subnet', 'monitors',
+                           'vip']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -176,10 +149,8 @@ class Pool(resources.BaseResource):
             'required': prop_data.get('required', False)
         }
         if prop_name == 'subnet':
-            choices = self.filter_resource(['OS::Neutron::subnet'], True)
+            choices = self.filter_resource(['OS::Neutron::Subnet'])
             field_args['choices'] = choices
-            choices = self._populate_network_choices(self.request, False)
-            field_args['choices'] += choices
             field = self.forms.ChoiceField(**field_args)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
@@ -188,11 +159,11 @@ class Pool(resources.BaseResource):
 
 def resource_mapping():
     return {
-        # 'OS::Neutron::FloatingIP': FloatingIP,
-        # 'OS::Neutron::FloatingIPAssociation': FloatingIPAssociation,
-        # 'OS::Neutron::Port': Port,
-        # 'OS::Neutron::Subnet': Subnet,
-        # 'OS::Neutron::HealthMonitor': HealthMonitor,
-        # 'OS::Neutron::LoadBalancer': LoadBalancer,
-        # 'OS::Neutron::Pool': Pool
+        'OS::Neutron::FloatingIP': FloatingIP,
+        'OS::Neutron::FloatingIPAssociation': FloatingIPAssociation,
+        'OS::Neutron::Port': Port,
+        'OS::Neutron::Subnet': Subnet,
+        'OS::Neutron::HealthMonitor': HealthMonitor,
+        'OS::Neutron::LoadBalancer': LoadBalancer,
+        'OS::Neutron::Pool': Pool
     }
