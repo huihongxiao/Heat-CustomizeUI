@@ -6,7 +6,7 @@ from openstack_dashboard.dashboards.project.customize_stack import resources
 
 class Server(resources.BaseResource):
     def __init__(self, request):
-        super(Resource, self).__init__(request)
+        super(Server, self).__init__(request)
         self.resource_type = 'OS::Nova::Server'
         self.properties = ['image', 'flavor', 'networks', 'key_name',
                            'user_data_format', 'user_data']
