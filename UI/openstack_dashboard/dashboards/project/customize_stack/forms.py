@@ -155,8 +155,11 @@ class ModifyResourceForm(forms.SelfHandlingForm):
     def _build_parameter_fields(self, params, resource):
         if resource:
             for prop_name, prop_data in sorted(params.items()):
-                if prop_name in resource and isinstance(params[prop_name], dict):
-                    params[prop_name]['Default'] = resource.get(prop_name)
+                if (prop_name in resource and
+                        isinstance(params[prop_name], dict) and
+                        params[prop_name]['type'] in ('integer', 'number',
+                                                      'string', 'boolean')):
+                    params[prop_name]['default'] = resource.get(prop_name)
 
         self.fields['resource_type'].initial = params.pop('resource_type')
         fields = self.res_cls.generate_prop_fields(params)

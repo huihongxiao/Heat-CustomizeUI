@@ -176,8 +176,10 @@ class EditResourceView(forms.ModalFormView):
     def _get_resource_type(self, request, resource_type):
         resource_properties = {}
         try:
-            resource = api.heat.resource_type_generate_template(request, resource_type)
-            resource_properties = resource['Parameters']
+            # resource = api.heat.resource_type_generate_template(request, resource_type)
+            # resource_properties = resource['Parameters']
+            resource = api.heat.resource_type_get(request, resource_type)
+            resource_properties = resource['properties']
         except Exception:
             msg = _('Unable to retrieve details of resource type %(rt)s' % {'rt': resource_type})
             exceptions.handle(request, msg)
