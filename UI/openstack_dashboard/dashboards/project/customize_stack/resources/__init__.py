@@ -16,6 +16,8 @@ from openstack_dashboard import api
 from horizon import exceptions
 from django.utils.translation import ugettext_lazy as _
 
+from django.core.exceptions import ValidationError
+
 
 class ListWidget(forms.MultiWidget):
     def __init__(self, widgets=None, attrs=None, labels=None):
@@ -35,6 +37,7 @@ class ListWidget(forms.MultiWidget):
                                                  rendered_widgets[i]))
             else:
                 ret += '%s' % rendered_widgets[i]
+        # return '<div class=" " style="margin-left:10px>"'+ret+'</div>'
         return ret
 
 
@@ -73,6 +76,23 @@ class MapField(forms.MultiValueField):
                 if data_list[i]:
                     ret[self.labels[i]] = data_list[i]
         return ret
+
+
+class MapCharField(forms.CharField):
+    default_error_messages = {
+        'invalid': _('Enter a json format string.'),
+    }
+
+    def to_python(self, value):
+        "Returns a Unicode object."
+        if value in self.empty_values:
+            return {}
+        try:
+            ret = jsonutils.loads(value.replace('\'', '\"'))
+        except Exception as ex:
+            raise ValidationError(self.error_messages['invalid'], code='invalid')
+        return ret
+
 
 
 class BaseResource(object):
@@ -176,7 +196,7 @@ class BaseResource(object):
                 field_args['fields'] = fields
                 field = MapField(**field_args)
             else:
-                field = forms.CharField(**field_args)
+                field = MapCharField(**field_args)
         elif prop_type in ('list'):
             fields = []
             schema = prop_data.get('schema', None)

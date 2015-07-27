@@ -5,6 +5,7 @@ import os
 import pickle
 import re
 import threading
+import six
 
 from openstack_dashboard.api import heat
 from openstack_dashboard.dashboards.project.stacks import mappings
@@ -134,7 +135,7 @@ def get_draft_template(request):
             }
             if 'parameters' in resource_folk:
                 resource_folk.pop('parameters')
-            resource_node['details'] = resource_folk
+            resource_node['details'] = dict((key, six.text_type(value)) for key, value in resource_folk.items())
             d3_data['nodes'].append(resource_node)
     return json.dumps(d3_data)
 
