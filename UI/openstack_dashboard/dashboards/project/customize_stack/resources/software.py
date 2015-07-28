@@ -8,7 +8,6 @@ class SoftwareConfig(resources.BaseResource):
     def __init__(self, request):
         super(SoftwareConfig, self).__init__(request)
         self.resource_type = 'OS::Heat::SoftwareConfig'
-        self.properties = ['config']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -46,7 +45,6 @@ class SoftwareDeployment(resources.BaseResource):
     def __init__(self, request):
         super(SoftwareDeployment, self).__init__(request)
         self.resource_type = 'OS::Heat::SoftwareDeployment'
-        self.properties = ['config', 'server']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {

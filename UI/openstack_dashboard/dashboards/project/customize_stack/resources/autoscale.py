@@ -8,13 +8,18 @@ class AutoScalingGroup(resources.BaseResource):
     def __init__(self, request):
         super(AutoScalingGroup, self).__init__(request)
         self.resource_type = 'OS::Heat::AutoScalingGroup'
-        self.properties = ['cooldown', 'max_size', 'min_size',
-                           'resource', 'desired_capacity']
+        # self.properties = ['cooldown', 'max_size', 'min_size',
+        #                    'resource', 'desired_capacity']
+        # self.invisible_properties = [
+        #     'resource', 'min_size', 'max_size',
+        #     'desired_capacity', 'cooldown', 'desired_capacity',
+        #     'rolling_updates',
+        # ]
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
             'initial': prop_data.get('default', None),
-            'label': prop_data.get('Label', prop_name),
+            'label': prop_data.get('label', prop_name),
             'help_text': prop_data.get('description', ''),
             'required': prop_data.get('required', False)
         }
@@ -48,8 +53,6 @@ class ScalingPolicy(resources.BaseResource):
     def __init__(self, request):
         super(ScalingPolicy, self).__init__(request)
         self.resource_type = 'OS::Heat::ScalingPolicy'
-        # self.properties = ['adjustment_type', 'auto_scaling_group_id',
-        #                    'cooldown', 'scaling_adjustment', 'min_adjustment_step']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {

@@ -1,6 +1,7 @@
 import json
 import logging
 from operator import attrgetter
+import six
 
 import yaml
 
@@ -213,3 +214,36 @@ class EditResourceView(forms.ModalFormView):
             kwargs['parameters'] = kwargs['initial']['parameters']
         kwargs['resource'] = kwargs['initial']['resource']
         return kwargs
+
+
+class DynamicListView(forms.ModalFormView):
+    template_name = 'project/customize_stack/additem.html'
+    modal_header = _("Add Item")
+    form_id = "add_item"
+    form_class = project_forms.DynamicListForm
+    submit_label = _("Add")
+    submit_url = "horizon:project:customize_stack:add_item"
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Add Item")
+
+    def get_object_id(self, obj):
+        return obj
+
+    def get_object_display(self, obj):
+        return obj
+
+    def get_context_data(self, **kwargs):
+        context = super(DynamicListView, self).get_context_data(**kwargs)
+        args = (self.kwargs['resource_type'], self.kwargs['property'])
+        context['submit_url'] = reverse(self.submit_url, args=args)
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super(DynamicListView, self).get_form_kwargs()
+        kwargs['resource_type'] = self.kwargs['resource_type']
+        kwargs['property'] = self.kwargs['property']
+        return kwargs
+
+    def get_form(self, form_class):
+        """Returns an instance of the form to be used in this view."""
+        return form_class(request=self.request, **self.get_form_kwargs())

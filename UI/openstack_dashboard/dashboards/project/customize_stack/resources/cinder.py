@@ -8,7 +8,10 @@ class Volume(resources.BaseResource):
     def __init__(self, request):
         super(Volume, self).__init__(request)
         self.resource_type = 'OS::Cinder::Volume'
-        self.properties = ['size']
+        self.invisible_properties = [
+            'backup_id', 'description', 'imageRef', 'image',
+            'source_volid', 'snapshot_id',
+        ]
 
 class VolumeAttachment(resources.BaseResource):
     def __init__(self, request):

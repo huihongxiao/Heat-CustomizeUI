@@ -3,6 +3,9 @@ import logging
 import six
 
 from horizon import forms
+from horizon import exceptions
+# from horizon.forms import fields
+# from horizon.forms import widgets
 from oslo_utils import strutils
 from oslo_serialization import jsonutils
 
@@ -13,10 +16,11 @@ from openstack_dashboard.dashboards.project.instances \
 from openstack_dashboard.dashboards.project.customize_stack \
     import api as project_api
 from openstack_dashboard import api
-from horizon import exceptions
-from django.utils.translation import ugettext_lazy as _
 
+from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ValidationError
+from django.core import urlresolvers
+from django.utils.safestring import mark_safe
 
 
 class ListWidget(forms.MultiWidget):
@@ -37,8 +41,33 @@ class ListWidget(forms.MultiWidget):
                                                  rendered_widgets[i]))
             else:
                 ret += '%s' % rendered_widgets[i]
-        # return '<div class=" " style="margin-left:10px>"'+ret+'</div>'
-        return ret
+        return '<div style="margin-left:15px">'+ret+'</div>'
+        # return ret
+
+    def render(self, name, value, attrs=None):
+        if self.is_localized:
+            for widget in self.widgets:
+                widget.is_localized = self.is_localized
+        # value is a list of values, each corresponding to a widget
+        # in self.widgets.
+        if not isinstance(value, list):
+            value = self.decompress(value)
+        output = []
+        final_attrs = self.build_attrs(attrs)
+        id_ = final_attrs.get('id', None)
+        # import ipdb;ipdb.set_trace()
+        for i, widget in enumerate(self.widgets):
+            try:
+                if isinstance(value, dict):
+                    widget_value = value.get(self.labels[i])
+                else:
+                    widget_value = value[i]
+            except (IndexError, KeyError):
+                widget_value = None
+            if id_:
+                final_attrs = dict(final_attrs, id='%s_%s' % (id_, i))
+            output.append(widget.render(name + '_%s' % i, widget_value, final_attrs))
+        return mark_safe(self.format_output(output))
 
 
 class ListField(forms.MultiValueField):
@@ -94,23 +123,75 @@ class MapCharField(forms.CharField):
         return ret
 
 
+class DynamicListWidget(forms.SelectMultiple):
+    _data_add_url_attr = "data-add-item-url"
+
+    def render(self, *args, **kwargs):
+        add_item_url = self.get_add_item_url()
+        if add_item_url is not None:
+            self.attrs[self._data_add_url_attr] = add_item_url
+        return super(DynamicListWidget, self).render(*args, **kwargs)
+
+    def get_add_item_url(self):
+        if callable(self.add_item_link):
+            return self.add_item_link()
+        try:
+            if self.add_item_link_args:
+                return urlresolvers.reverse(self.add_item_link,
+                                            args=self.add_item_link_args)
+            else:
+                return urlresolvers.reverse(self.add_item_link)
+        except urlresolvers.NoReverseMatch:
+            return self.add_item_link
+
+
+class DynamicListField(forms.MultipleChoiceField):
+    widget = DynamicListWidget
+
+    def __init__(self,
+                 add_item_link=None,
+                 add_item_link_args=None,
+                 *args,
+                 **kwargs):
+        super(DynamicListField, self).__init__(*args, **kwargs)
+        self.widget.add_item_link = add_item_link
+        self.widget.add_item_link_args = add_item_link_args
+
+    def validate(self, value):
+        if not value:
+            raise ValidationError(
+                self.error_messages['invalid_choice'],
+                code='invalid_choice',
+                params={'value': value},
+            )
+
+    def to_python(self, value):
+        ret = []
+        if value in self.empty_values:
+            return ret
+        for item in value:
+            try:
+                val = jsonutils.loads(item)
+                if val:
+                    ret.append(val)
+            except Exception as ex:
+                if item:
+                    ret.append(item)
+        return ret
 
 class BaseResource(object):
 
     def __init__(self, request):
         self.resource_type = None
-        self.properties = None
         self.forms = forms
         self.request = request
         self.ListField = ListField
-        self.invisible_properties = None
+        self.invisible_properties = []
 
     def generate_prop_fields(self, params):
         fields = {}
-        if self.properties is None:
-            self.properties = params.keys()
         for prop_name, prop_data in sorted(params.items()):
-            if prop_name not in self.properties:
+            if prop_name in self.invisible_properties:
                 continue
             if hasattr(self, 'handle_prop'):
                 handler = getattr(self, 'handle_prop')
@@ -140,7 +221,7 @@ class BaseResource(object):
         prop_form = None
         field_args = {
             'initial': prop_data.get('default', None),
-            'label': prop_data.get('Label', prop_name),
+            'label': prop_data.get('label', prop_name),
             'help_text': prop_data.get('description', ''),
             'required': prop_data.get('required', False)
         }
@@ -173,7 +254,7 @@ class BaseResource(object):
                 #         field_args['max_length'] = int(min_max['max'])
         if prop_form:
             field = prop_form(**field_args)
-        elif prop_type in ('integer'):
+        elif prop_type in ('integer', 'number'):
             field = forms.IntegerField(**field_args)
         elif prop_type in ('number'):
             field = forms.FloatField(**field_args)
@@ -184,8 +265,7 @@ class BaseResource(object):
             schema = prop_data.get('schema', None)
             if schema:
                 for name, data in sorted(schema.items()):
-                    if (self.invisible_properties and
-                                name in self.invisible_properties):
+                    if (name in self.invisible_properties):
                         continue
                     if hasattr(self, 'handle_prop'):
                         handler = getattr(self, 'handle_prop')
@@ -199,13 +279,10 @@ class BaseResource(object):
                 field = MapCharField(**field_args)
         elif prop_type in ('list'):
             fields = []
-            schema = prop_data.get('schema', None)
-            if schema:
-                fields.append(self._handle_common_prop('', schema['*']))
-                field_args['fields'] = fields
-            else:
-                field_args['fields'] = [forms.CharField(label='')]
-            field = ListField(**field_args)
+            field_args['add_item_link'] = "horizon:project:customize_stack:add_item"
+            field_args['add_item_link_args'] = (self.resource_type, prop_name)
+            field_args['choices'] = [('', 'Empty')]
+            field = DynamicListField(**field_args)
         else:
             field = forms.CharField(**field_args)
         return field
@@ -238,6 +315,16 @@ class BaseResource(object):
         elif len(zone_list) > 1:
             zone_list.insert(0, ("", _("Any Availability Zone")))
         return zone_list
+
+    def _populate_secgroups_choices(self, include_empty=True):
+        security_group_list = []
+        try:
+            groups = api.network.security_group_list(self.request)
+            security_group_list = [(sg.name, sg.name) for sg in groups]
+        except Exception:
+            exceptions.handle(self.request,
+                              _('Unable to retrieve list of security groups'))
+        return security_group_list
 
     @staticmethod
     def _create_upload_form_attributes(prefix, input_type, name):
