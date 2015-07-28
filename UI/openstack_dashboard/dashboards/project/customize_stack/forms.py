@@ -155,9 +155,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         if resource:
             for prop_name, prop_data in sorted(params.items()):
                 if (prop_name in resource and
-                        isinstance(params[prop_name], dict) and
-                        params[prop_name]['type'] in ('integer', 'number',
-                                                      'string', 'boolean')):
+                        isinstance(params[prop_name], dict)):
                     params[prop_name]['default'] = resource.get(prop_name)
 
         self.fields['resource_type'].initial = params.pop('resource_type')

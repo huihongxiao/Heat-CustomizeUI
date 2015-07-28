@@ -42,7 +42,6 @@ class ListWidget(forms.MultiWidget):
             else:
                 ret += '%s' % rendered_widgets[i]
         return '<div style="margin-left:15px">'+ret+'</div>'
-        # return ret
 
     def render(self, name, value, attrs=None):
         if self.is_localized:
@@ -55,7 +54,6 @@ class ListWidget(forms.MultiWidget):
         output = []
         final_attrs = self.build_attrs(attrs)
         id_ = final_attrs.get('id', None)
-        # import ipdb;ipdb.set_trace()
         for i, widget in enumerate(self.widgets):
             try:
                 if isinstance(value, dict):
@@ -158,7 +156,7 @@ class DynamicListField(forms.MultipleChoiceField):
         self.widget.add_item_link_args = add_item_link_args
 
     def validate(self, value):
-        if not value:
+        if not value and value != []:
             raise ValidationError(
                 self.error_messages['invalid_choice'],
                 code='invalid_choice',
@@ -278,10 +276,13 @@ class BaseResource(object):
             else:
                 field = MapCharField(**field_args)
         elif prop_type in ('list'):
-            fields = []
+            import ipdb;ipdb.set_trace()
             field_args['add_item_link'] = "horizon:project:customize_stack:add_item"
             field_args['add_item_link_args'] = (self.resource_type, prop_name)
-            field_args['choices'] = [('', 'Empty')]
+            if field_args['initial']:
+                field_args['choices'] = [(jsonutils.dumps(item), jsonutils.dumps(item)) for item in field_args['initial']]
+            else:
+                field_args['choices'] = [('', 'Empty')]
             field = DynamicListField(**field_args)
         else:
             field = forms.CharField(**field_args)
