@@ -1869,6 +1869,23 @@ label.log-length {
     visibility: visible;
 }
 
+/* Resource Form */
+
+.listWidgetButton {
+	width: 32px;
+	height: 32px;
+	padding: 6px 6px;
+}
+
+.listItem {
+	width: 300px;
+	display: inline-block;
+}
+
+
+
+
+
 
 /* Styling for draged firewall rule object */
 #ruleListSortContainer {

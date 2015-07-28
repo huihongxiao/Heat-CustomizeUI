@@ -1,6 +1,7 @@
 
 import logging
 import six
+import re
 
 from horizon import forms
 from oslo_utils import strutils
@@ -19,6 +20,14 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ValidationError
 
 
+class CharListItemField(forms.CharField):
+
+    def to_python(self, value):
+        if value in self.empty_values:
+            return ''
+        return value
+
+
 class ListWidget(forms.MultiWidget):
     def __init__(self, widgets=None, attrs=None, labels=None):
         super(ListWidget, self).__init__(widgets, attrs)
@@ -32,19 +41,41 @@ class ListWidget(forms.MultiWidget):
     def format_output(self, rendered_widgets):
         ret = ''
         for i in range(len(rendered_widgets)):
+            rendered = rendered_widgets[i]
+            rendered = rendered.replace('class="', 'class="listItem ')
             if self.labels[i]:
                 ret += ('<label>%s</label>%s' % (self.labels[i],
-                                                 rendered_widgets[i]))
+                                                 rendered))
             else:
-                ret += '%s' % rendered_widgets[i]
-        # return '<div class=" " style="margin-left:10px>"'+ret+'</div>'
+                ret += '%s' % rendered
+        
+        r = re.compile('name="(.*)_\d"')
+        m = r.search(ret)
+        name = m.groups(1)[0]
+        ret += '<a id="addItemButton" class="listWidgetButton btn btn-default" onclick="addListItem(\'' \
+                + name + '\')"><span class="fa fa-plus"></span></a>'
         return ret
 
-
+    def value_from_datadict(self, data, files, name):
+        for i, widget in enumerate(self.widgets):
+            print 'widget', widget
+#         return [widget.value_from_datadict(data, files, name + '_%s' % i) for i, widget in enumerate(self.widgets)]
+        values = []
+        i = 0
+        while True:
+            itemName = name + '_%d' % i
+            if itemName in data:
+                values.append(data[itemName])
+                i += 1
+            else:
+                break
+        return [values]
+    
 class ListField(forms.MultiValueField):
     def __init__(self, fields=(), *args, **kwargs):
         super(ListField, self).__init__(*args, **kwargs)
         for f in fields:
+            print 'field', f
             f.required = False
         self.fields = fields
         widgets = [ff.widget for ff in self.fields]
@@ -53,10 +84,13 @@ class ListField(forms.MultiValueField):
                                  labels=self.labels)
 
     def compress(self, data_list):
+        print 'data_list', data_list
         if data_list:
             return [data for data in data_list if data and data != 'None']
         return []
 
+    def bound_data(self, data, initial):
+        return data
 
 class MapField(forms.MultiValueField):
     def __init__(self, fields=(), *args, **kwargs):
@@ -204,7 +238,7 @@ class BaseResource(object):
                 fields.append(self._handle_common_prop('', schema['*']))
                 field_args['fields'] = fields
             else:
-                field_args['fields'] = [forms.CharField(label='')]
+                field_args['fields'] = [CharListItemField(label='')]
             field = ListField(**field_args)
         else:
             field = forms.CharField(**field_args)

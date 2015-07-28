@@ -22,6 +22,36 @@
 
 var container = "#heat_topology";
 var node_selected = false;
+var addNetworkButton = "#addNetwork"
+
+function addListItem(name){
+	var items, length, lastItem, newItem, minusButton;
+	items = $("[name^='"+name+"']");
+	length = items.length;
+	lastItem = $(items[length-1]);
+	newItem = $($(lastItem).clone()[0]);
+	newItem.attr('name', name+'_'+length);
+	newItem.attr('id', 'id_'+name+'_'+length);
+	newItem.val('');
+	lastItem.after(newItem);
+	
+	minusButton = $('<a class="listWidgetButton btn btn-default"><span class="fa fa-minus"></span></a>');
+	minusButton.attr('id', 'deleteItem_'+(length-1));
+	minusButton.click(function(e){
+		lastItem.remove();
+		minusButton.remove();
+		
+		var items = $("[name^='"+name+"']");
+		$.each(items, function(i, item){
+			console.info($(item));
+			$(item).attr('name', name+'_'+i);
+			$(item).attr('id', 'id_'+name+'_'+i);
+		})
+		
+		e.preventDefault();
+	})
+	lastItem.after(minusButton);
+}
 
 function update(){
   node = node.data(nodes, function(d) { return d.name; });
@@ -98,7 +128,8 @@ function showDetails(d) {
 	var details = $('#node_info'),
 		seg;
 	
-	showBrief(d)
+	showBrief(d);
+	console.info(d);
 	
 	for(var key in d) {
 		if(key == 'resource_name' || key == 'resource_type')
@@ -274,3 +305,12 @@ if ($(container).length){
 		force.resume();
 	});
 }
+
+
+if ($(addNetworkButton).length){
+	alert("yes");
+
+}
+
+
+
