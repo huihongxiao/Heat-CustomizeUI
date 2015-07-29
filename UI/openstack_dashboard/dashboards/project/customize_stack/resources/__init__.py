@@ -16,7 +16,7 @@ from openstack_dashboard.dashboards.project.customize_stack \
 from openstack_dashboard import api
 from horizon import exceptions
 from django.utils.translation import ugettext_lazy as _
-
+from django.utils.safestring import mark_safe
 from django.core.exceptions import ValidationError
 
 
@@ -39,43 +39,121 @@ class ListWidget(forms.MultiWidget):
         return ''
 
     def format_output(self, rendered_widgets):
+        ret = '<div class="listItemWrapper">'
+        for i in range(len(rendered_widgets)):
+            rendered = rendered_widgets[i]
+            ret += '<div class="listItem">'
+            if self.labels[i]:
+                ret += ('<label>%s</label>%s' % (self.labels[i],
+                                                 rendered))
+            else:
+                ret += '%s' % rendered
+            ret +='</div>'
+        r = re.compile('name="(.*?)_\d"')
+        m = r.search(ret)
+        name = m.groups(1)[0]
+        ret += '<div class="listButton"><a id="addItemButton" class="listWidgetButton btn btn-default" onclick="addListItem(\'' \
+                + name + '\')"><span class="fa fa-plus"></span></a></div>'
+        ret += '</div>'
+        return ret
+
+    def value_from_datadict(self, data, files, name):
+        values = []
+        i = 0
+        print 'list name:', name
+        print 'list widget:', self.widgets
+        while True:
+            itemName = name + '_%d' % i
+            value = self.widgets[0].value_from_datadict(data, files, itemName)
+            if value:
+                values.append(value)
+                i += 1
+            else:
+                break
+        print 'list values', [values]
+        return [values]
+    
+    def render(self, name, value, attrs=None):
+        if self.is_localized:
+            for widget in self.widgets:
+                widget.is_localized = self.is_localized
+        # value is a list of values, each corresponding to a widget
+        # in self.widgets.
+        if not isinstance(value, list):
+            value = self.decompress(value)
+        output = []
+        final_attrs = self.build_attrs(attrs)
+        id_ = final_attrs.get('id', None)
+        for i, widget in enumerate(self.widgets):
+            try:
+                widget_value = value[i]
+            except IndexError:
+                widget_value = None
+            if id_:
+                final_attrs = dict(final_attrs, id='%s_%s' % (id_, i))
+            output.append(widget.render(name + '_%s' % i, widget_value, final_attrs))
+        return mark_safe('<div class="listWidget">' + self.format_output(output) + '</div>')
+    
+
+class MapWidget(forms.MultiWidget):
+    def __init__(self, widgets=None, attrs=None, labels=None):
+        super(MapWidget, self).__init__(widgets, attrs)
+        self.labels = labels
+
+    def decompress(self, value):
+        if value:
+            return value
+        return ''
+
+    def format_output(self, rendered_widgets):
         ret = ''
         for i in range(len(rendered_widgets)):
             rendered = rendered_widgets[i]
-            rendered = rendered.replace('class="', 'class="listItem ')
             if self.labels[i]:
                 ret += ('<label>%s</label>%s' % (self.labels[i],
                                                  rendered))
             else:
                 ret += '%s' % rendered
         
-        r = re.compile('name="(.*)_\d"')
-        m = r.search(ret)
-        name = m.groups(1)[0]
-        ret += '<a id="addItemButton" class="listWidgetButton btn btn-default" onclick="addListItem(\'' \
-                + name + '\')"><span class="fa fa-plus"></span></a>'
         return ret
-
-    def value_from_datadict(self, data, files, name):
+    
+    def render(self, name, value, attrs=None):
+        if self.is_localized:
+            for widget in self.widgets:
+                widget.is_localized = self.is_localized
+        # value is a list of values, each corresponding to a widget
+        # in self.widgets.
+        if not isinstance(value, list):
+            value = self.decompress(value)
+        output = []
+        final_attrs = self.build_attrs(attrs)
+        id_ = final_attrs.get('id', None)
         for i, widget in enumerate(self.widgets):
-            print 'widget', widget
-#         return [widget.value_from_datadict(data, files, name + '_%s' % i) for i, widget in enumerate(self.widgets)]
-        values = []
+            try:
+                widget_value = value[i]
+            except IndexError:
+                widget_value = None
+            if id_:
+                final_attrs = dict(final_attrs, id='%s_%s' % (id_, i))
+            output.append(widget.render(name + '_%s' % i, widget_value, final_attrs))
+        return mark_safe('<div class="mapWidget" mapid="'+name+'">' + self.format_output(output) + '</div>')
+    
+    def value_from_datadict(self, data, files, name):
+        map = {}
         i = 0
-        while True:
-            itemName = name + '_%d' % i
-            if itemName in data:
-                values.append(data[itemName])
-                i += 1
-            else:
-                break
-        return [values]
+        print 'map name:', name
+        if name+'_0' not in data:
+            return None
+        for i, widget in enumerate(self.widgets):
+            map[self.labels[i]] = widget.value_from_datadict(data, files, name+'_%d' % i)
+        
+        print 'map value', map
+        return map
     
 class ListField(forms.MultiValueField):
     def __init__(self, fields=(), *args, **kwargs):
         super(ListField, self).__init__(*args, **kwargs)
         for f in fields:
-            print 'field', f
             f.required = False
         self.fields = fields
         widgets = [ff.widget for ff in self.fields]
@@ -89,9 +167,6 @@ class ListField(forms.MultiValueField):
             return [data for data in data_list if data and data != 'None']
         return []
 
-    def bound_data(self, data, initial):
-        return data
-
 class MapField(forms.MultiValueField):
     def __init__(self, fields=(), *args, **kwargs):
         super(MapField, self).__init__(*args, **kwargs)
@@ -100,10 +175,11 @@ class MapField(forms.MultiValueField):
         self.fields = fields
         widgets = [ff.widget for ff in self.fields]
         self.labels = [ff.label for ff in self.fields]
-        self.widget = ListWidget(widgets=widgets,
+        self.widget = MapWidget(widgets=widgets,
                                  labels=self.labels)
 
     def compress(self, data_list):
+        print 'map datalist', data_list
         ret = {}
         if data_list:
             for i in range(len(data_list)):
@@ -111,6 +187,10 @@ class MapField(forms.MultiValueField):
                     ret[self.labels[i]] = data_list[i]
         return ret
 
+    def to_python(self, value):
+        if value in self.empty_values:
+            return ''
+        return value
 
 class MapCharField(forms.CharField):
     default_error_messages = {

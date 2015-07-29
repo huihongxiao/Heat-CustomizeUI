@@ -25,32 +25,99 @@ var node_selected = false;
 var addNetworkButton = "#addNetwork"
 
 function addListItem(name){
-	var items, length, lastItem, newItem, minusButton;
-	items = $("[name^='"+name+"']");
-	length = items.length;
-	lastItem = $(items[length-1]);
-	newItem = $($(lastItem).clone()[0]);
-	newItem.attr('name', name+'_'+length);
-	newItem.attr('id', 'id_'+name+'_'+length);
-	newItem.val('');
-	lastItem.after(newItem);
+	var elements, length, oldElement, oldItem, oldWrapper,
+		newElement, newItem, newWrapper, minusButton, minusButtonWrapper,
+		plusButton, plusButtonWrapper, isMap ,oldMap, newMap, maps;
 	
-	minusButton = $('<a class="listWidgetButton btn btn-default"><span class="fa fa-minus"></span></a>');
-	minusButton.attr('id', 'deleteItem_'+(length-1));
-	minusButton.click(function(e){
-		lastItem.remove();
-		minusButton.remove();
+	elements = $("[name^='"+name+"']");
+	length = elements.length;
+	oldElement = $(elements[length-1]);
+	if(!oldElement.parent().hasClass('mapWidget')) {
+		oldItem = oldElement.parent();
+		oldWrapper = oldItem.parent();
+		plusButtonWrapper = oldItem.next();
+	
+		newElement = $(oldElement).clone();
+		newElement.attr('name', name+'_'+length);
+		newElement.attr('id', 'id_'+name+'_'+length);
+		newElement.val('');
 		
-		var items = $("[name^='"+name+"']");
-		$.each(items, function(i, item){
-			console.info($(item));
-			$(item).attr('name', name+'_'+i);
-			$(item).attr('id', 'id_'+name+'_'+i);
+		newWrapper = $('<div class="listItemWrapper"></div>');
+		newItem = $('<div class="listItem"></div>');
+		newItem.append(newElement);
+		newWrapper.append(newItem);
+		
+		minusButton = $('<a class="listWidgetButton btn btn-default"><span class="fa fa-minus"></span></a>');
+		minusButton.attr('id', 'deleteItem_'+(length-1));
+		minusButton.click(function(e){
+			oldWrapper.remove();
+			
+			var elements = $("[name^='"+name+"']");
+			$.each(elements, function(i, item){
+				$(item).attr('name', name+'_'+i);
+				$(item).attr('id', 'id_'+name+'_'+i);
+			})
+			
+			e.preventDefault();
 		})
 		
-		e.preventDefault();
-	})
-	lastItem.after(minusButton);
+		minusButtonWrapper = $('<div class="listButton"></div>')
+		minusButtonWrapper.append(minusButton);
+		
+		plusButtonWrapper.detach();
+		oldWrapper.append(minusButtonWrapper);
+		newWrapper.append(plusButtonWrapper);
+		
+		oldWrapper.after(newWrapper);
+	} else {
+		name = name.slice(0, name.lastIndexOf('_'));
+		maps = $("[mapid^='"+name+"']");
+		length = maps.length;
+		
+		oldMap = $(maps[length-1]);
+		oldItem = oldMap.parent();
+		oldWrapper = oldItem.parent();
+		plusButtonWrapper = oldItem.next();
+
+
+		newMap = $(oldMap).clone();
+		newMap.attr('mapid', name+'_'+length);
+		$.each(newMap.children(':not(label)'), function(i, element) {
+			$(element).attr('name', name+'_'+length+'_'+i);
+			$(element).attr('id', 'id_'+name+'_'+length+'_'+i);
+			$(element).val('');
+		});
+		
+		newWrapper = $('<div class="listItemWrapper"></div>');
+		newItem = $('<div class="listItem"></div>');
+		newItem.append(newMap);
+		newWrapper.append(newItem);
+		
+		minusButton = $('<a class="listWidgetButton btn btn-default"><span class="fa fa-minus"></span></a>');
+		minusButton.attr('id', 'deleteItem_'+(length-1));
+		minusButton.click(function(e){
+			oldWrapper.remove();
+			
+			var maps = $("[mapid^='"+name+"']");
+			$.each(maps, function(i, map){
+				$(map).attr('mapid', name+'_'+i);
+				$.each($(map).children(':not(label)'), function(j, element) {
+					$(element).attr('name', name+'_'+i+'_'+j);
+					$(element).attr('id', 'id_'+name+'_'+i+'_'+j);
+				});
+			});
+			e.preventDefault();
+		});
+		
+		minusButtonWrapper = $('<div class="listButton"></div>')
+		minusButtonWrapper.append(minusButton);
+		
+		plusButtonWrapper.detach();
+		oldWrapper.append(minusButtonWrapper);
+		newWrapper.append(plusButtonWrapper);
+		
+		oldWrapper.after(newWrapper);	
+	}
 }
 
 function update(){
