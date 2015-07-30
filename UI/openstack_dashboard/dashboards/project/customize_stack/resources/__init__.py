@@ -121,7 +121,7 @@ class MapCharField(forms.CharField):
         return ret
 
 
-class DynamicListWidget(forms.SelectMultiple):
+class DynamicListWidget(forms.CheckboxSelectMultiple):
     _data_add_url_attr = "data-add-item-url"
 
     def render(self, *args, **kwargs):
@@ -281,7 +281,7 @@ class BaseResource(object):
             if field_args['initial']:
                 field_args['choices'] = [(jsonutils.dumps(item), jsonutils.dumps(item)) for item in field_args['initial']]
             else:
-                field_args['choices'] = [('', 'Empty')]
+                field_args['choices'] = []
             field = DynamicListField(**field_args)
         else:
             field = forms.CharField(**field_args)
