@@ -279,7 +279,10 @@ class BaseResource(object):
             field_args['add_item_link'] = "horizon:project:customize_stack:add_item"
             field_args['add_item_link_args'] = (self.resource_type, prop_name)
             if field_args['initial']:
-                field_args['choices'] = [(jsonutils.dumps(item), jsonutils.dumps(item)) for item in field_args['initial']]
+                field_args['choices'] = [
+                    (jsonutils.dumps(item), jsonutils.dumps(item)) if isinstance(item, dict) else (item, item)
+                    for item in field_args['initial']]
+                field_args['initial'] = [item[0] for item in field_args['choices']]
             else:
                 field_args['choices'] = []
             field = DynamicListField(**field_args)

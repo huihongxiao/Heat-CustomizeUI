@@ -145,7 +145,6 @@ class ModifyResourceForm(forms.SelfHandlingForm):
             self.origin_resource = resource
         self.fields['depends_on'].choices = (resource_name_choice)
         LOG.info('Original Resource Parameters %s' % parameters)
-        # import ipdb;ipdb.set_trace()
         res_type = parameters['resource_type']
         target_cls = resource_type_map.get(res_type, None)
         self.res_cls = target_cls(self.request)
@@ -186,7 +185,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         res_data = self.res_cls.generate_res_data(data)
         if self.origin_resource:
             project_api.modify_resource_in_draft(self.request, res_data, self.origin_resource['resource_name'])
-        else :
+        else:
             project_api.add_resource_to_draft(self.request, res_data)
         # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
         # request so that we can chain it as an input to the next view...
