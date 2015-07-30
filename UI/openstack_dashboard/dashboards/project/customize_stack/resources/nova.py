@@ -8,18 +8,11 @@ class Server(resources.BaseResource):
     def __init__(self, request):
         super(Server, self).__init__(request)
         self.resource_type = 'OS::Nova::Server'
-        # self.properties = ['image', 'flavor', 'networks', 'key_name',
-        #                    'config_drive',
-        #                    'user_data_format', 'user_data',
-        #                    'availability_zone',
-        #                    'software_config_transport',
-        #                    'network',
-        #                    'fixed_ip',
-        #                    'port']
         self.invisible_properties = [
             'uuid', 'diskconfig', 'flavor_update_policy', 'reservation_id',
             'scheduler_hints', 'admin_user', 'admin_pass', 'block_device_mapping',
             'block_device_mapping_v2', 'image_update_policy', 'personality',
+            'diskconfig',
         ]
 
     def handle_prop(self, prop_name, prop_data):
