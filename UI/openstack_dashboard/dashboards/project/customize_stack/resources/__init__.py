@@ -276,7 +276,6 @@ class BaseResource(object):
             else:
                 field = MapCharField(**field_args)
         elif prop_type in ('list'):
-            import ipdb;ipdb.set_trace()
             field_args['add_item_link'] = "horizon:project:customize_stack:add_item"
             field_args['add_item_link_args'] = (self.resource_type, prop_name)
             if field_args['initial']:
