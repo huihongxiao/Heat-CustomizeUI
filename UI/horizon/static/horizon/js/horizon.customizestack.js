@@ -23,6 +23,24 @@
 var container = "#heat_topology";
 var node_selected = false;
 
+function del_items(name) {
+	var id, ul; 
+	id = 'id_' + name;
+	ul = $('#'+id);
+	$.each(ul.children(), function(i, li) {
+		var checkbox = $(li).children().children();
+		if(checkbox.is(':checked')) {
+			$(li).remove();
+		}
+	});
+	$.each(ul.children(), function(i, li) {
+		var label = $(li).children();
+		input = label.children();
+		label.attr('for', id+'_'+i);
+		input.attr('id', id+'_'+i);
+	});
+}
+
 function update(){
   node = node.data(nodes, function(d) { return d.name; });
   link = link.data(links);
