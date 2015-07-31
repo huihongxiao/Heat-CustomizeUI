@@ -123,6 +123,7 @@ class MapCharField(forms.CharField):
 
 class DynamicListWidget(forms.CheckboxSelectMultiple):
     _data_add_url_attr = "data-add-item-url"
+    has_del_btn = True;
 
     def render(self, *args, **kwargs):
         add_item_url = self.get_add_item_url()
