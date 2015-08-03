@@ -4,7 +4,7 @@ import horizon
 from openstack_dashboard.dashboards.project import dashboard
 
 class Customize_Stack(horizon.Panel):
-    name = _("Customize_Stack")
+    name = _("Customize Stacks")
     slug = "customize_stack"
 
 
