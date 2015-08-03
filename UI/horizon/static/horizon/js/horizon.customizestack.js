@@ -20,7 +20,7 @@
  * under the License.
  */
 
-var container = "#heat_topology";
+var cs_container = "#heat_topology";
 var node_selected = false;
 
 function del_items(name) {
@@ -41,7 +41,7 @@ function del_items(name) {
 	});
 }
 
-function update(){
+function cs_update(){
   node = node.data(nodes, function(d) { return d.name; });
   link = link.data(links);
 
@@ -241,8 +241,8 @@ function build_reverse_links(node){
   }
 }
 
-if ($(container).length){
-  var width = $(container).width(),
+if ($(cs_container).length){
+  var width = $(cs_container).width(),
     height = 500,
     ajax_url = '/project/customize_stack/get_draft_template_data',
     graph;
@@ -264,7 +264,7 @@ if ($(container).length){
       .linkDistance(100)
       .size([width, height])
       .on("tick", tick),
-    svg = d3.select(container).append("svg")
+    svg = d3.select(cs_container).append("svg")
       .attr("width", width)
       .attr("height", height),
     node = svg.selectAll(".node"),
@@ -282,11 +282,11 @@ if ($(container).length){
   });
 
   build_links();
-  update();
+  cs_update();
   
 	//resize the canvas when the window is resized.
 	$(window).resize(function(){
- 		var width = $(container).width();
+ 		var width = $(cs_container).width();
 		force.size([width, height]);
 		svg.attr("width", width);
 		force.resume();
