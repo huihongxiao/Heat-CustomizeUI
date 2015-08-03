@@ -1669,7 +1669,6 @@ label.log-length {
 /**** Customize Stack CSS ****/
 #heat_topology {
   margin-left: 192px;
-  height: 506px;
   border-width: 3px;
   border-style: solid;
   border-color: #dedede;
@@ -1678,7 +1677,7 @@ label.log-length {
 #detail_box {
   position: absolute;
   width: 195px;
-  height: 506px;
+  height: 100%;
   border-width: 3px;
   border-style: solid;
   border-color: #dedede;
@@ -1736,7 +1735,6 @@ label.log-length {
   float: left;
   width: 189px;
   padding: 10px;
-  display: none;
 }
 #opt_bar a{
   margin-left: 9px;

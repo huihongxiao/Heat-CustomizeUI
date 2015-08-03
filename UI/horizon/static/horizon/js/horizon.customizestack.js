@@ -243,7 +243,10 @@ function build_reverse_links(node){
 
 if ($(cs_container).length){
   var width = $(cs_container).width(),
-    height = 500,
+	height = window.innerHeight - 200;
+	if (height < 500){
+		height = 500;'
+	}
     ajax_url = '/project/customize_stack/get_draft_template_data',
     graph;
   $('#opt_bar').hide();
@@ -286,9 +289,14 @@ if ($(cs_container).length){
   
 	//resize the canvas when the window is resized.
 	$(window).resize(function(){
- 		var width = $(cs_container).width();
+ 		var width = $(cs_container).width(),
+ 		height = window.innerHeight - 200;
+ 		if (height < 500){
+ 			height = 500;
+ 		}
 		force.size([width, height]);
 		svg.attr("width", width);
+		svg.attr("height", height);
 		force.resume();
 	});
 }
