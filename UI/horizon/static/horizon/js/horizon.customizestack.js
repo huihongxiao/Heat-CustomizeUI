@@ -82,6 +82,7 @@ function cs_update(){
     }
   });
   node.on("click", function(d) {
+	$('#detail_box').perfectScrollbar('destroy');
     icon = $('<img/>');
     icon.attr('src', d.image);
     $('#node_icon').html(icon);
@@ -90,6 +91,7 @@ function cs_update(){
 	$('#cus_stack_action_delete').attr('href',"/project/customize_stack/delete_resource/" + d.name + "/");
 	$('#cus_stack_action_edit').attr('href',"/project/customize_stack/edit_resource/" + d.name + "/");
 	
+	$('#detail_box').perfectScrollbar();
     node_selected = true;
     d3.event.stopPropagation()
   });
@@ -128,7 +130,6 @@ function showDetails(d) {
 		seg.html(d[key]?d[key]:'None');
 		details.append(seg);
 	}
-	$('#detail_box').perfectScrollbar();
 }
 
 function tick() {
