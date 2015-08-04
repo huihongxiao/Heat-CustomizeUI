@@ -245,7 +245,7 @@ if ($(cs_container).length){
   var width = $(cs_container).width(),
 	height = window.innerHeight - 200;
 	if (height < 500){
-		height = 500;'
+		height = 500;
 	}
     ajax_url = '/project/customize_stack/get_draft_template_data',
     graph;
