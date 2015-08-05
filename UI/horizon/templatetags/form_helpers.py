@@ -11,6 +11,8 @@
 #    under the License.
 
 import django.forms
+from openstack_dashboard.dashboards.project.customize_stack \
+    import resources
 from django import template as django_template
 
 register = django_template.Library()
@@ -54,6 +56,9 @@ def is_radio(field):
 def is_file(field):
     return isinstance(field.field.widget, django.forms.FileInput)
 
+@register.filter
+def is_dynamic_list(field):
+    return isinstance(field.field.widget, resources.DynamicListWidget)
 
 @register.filter
 def add_item_url(field):
@@ -62,8 +67,8 @@ def add_item_url(field):
     return None
 
 @register.filter
-def item_to_del(field):
-    if hasattr(field.field.widget, 'has_del_btn'):
+def widget_to_handle(field):
+    if is_dynamic_list(field):
         return field.name
     return None
 

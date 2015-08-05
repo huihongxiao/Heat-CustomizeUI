@@ -1744,6 +1744,19 @@ label.log-length {
   width: 70px;
 }
 
+select.dynamic_listbox {
+	height: 96px;
+}
+
+.dynamic_list_btn {
+	display: block;
+	margin-top: -1px;
+	border-radius: 0;
+}
+.dynamic_list_btn span {
+	width: 10px;
+}
+
 /* Styling for dynamic scroll bar */
 .ps-container .ps-scrollbar-x-rail {
     position: absolute; /* please don't change 'position' */

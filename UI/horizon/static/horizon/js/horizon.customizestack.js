@@ -24,21 +24,32 @@ var cs_container = "#heat_topology";
 var node_selected = false;
 
 function del_items(name) {
-	var id, ul; 
+	var id; 
 	id = 'id_' + name;
-	ul = $('#'+id);
-	$.each(ul.children(), function(i, li) {
-		var checkbox = $(li).children().children();
-		if(checkbox.is(':checked')) {
-			$(li).remove();
+	$('#'+id+' option:selected').remove();
+}
+
+function edit_item(name, add_link) {
+	var id, widget, btn_grp, edit_btn, edit_link, value = null, index; 
+	id = 'id_' + name;
+	widget = $('#'+id);
+	btn_grp = widget.next();
+	edit_btn = $(btn_grp.children()[2]);
+	edit_link = add_link.replace('add_item', 'edit_item');
+	$.each(widget.children(), function(i, option) {
+		if($(option).is(':selected')) {
+			value = $(option).attr('value');
+			index = i;
 		}
 	});
-	$.each(ul.children(), function(i, li) {
-		var label = $(li).children();
-		input = label.children();
-		label.attr('for', id+'_'+i);
-		input.attr('id', id+'_'+i);
-	});
+	if(value) {
+		edit_btn.addClass('ajax-add ajax-modal');
+		edit_btn.attr('href', edit_link + value + '/');
+		edit_btn.attr('option-to-edit', index);
+	} else {
+		edit_btn.removeClass('ajax-add ajax-modal');
+		edit_btn.attr('href', 'javascript:void(0);');
+	}
 }
 
 function cs_update(){

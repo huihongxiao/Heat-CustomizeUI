@@ -189,6 +189,7 @@ horizon.addInitFunction(horizon.modals.init = function() {
       form = this,
       $button = $form.find(".modal-footer .btn-primary"),
       update_field_id = $form.attr("data-add-to-field"),
+      edit_option_index = $form.attr("option-index"),
       headers = {},
       modalFileUpload = $form.attr("enctype") === "multipart/form-data",
       formData, ajaxOpts, featureFileList, featureFormData;
@@ -203,7 +204,10 @@ horizon.addInitFunction(horizon.modals.init = function() {
         // support setting custom headers in AJAX requests either, so
         // modal forms won't work in them (namely, IE9).
         return;
-      } else {
+      } else {	
+	    if (!update_field_id) {
+	    	$('.dynamic_listbox option').prop('selected', true);
+	    }
         formData = new window.FormData(form);
       }
     } else {
@@ -215,7 +219,10 @@ horizon.addInitFunction(horizon.modals.init = function() {
     $button.prop("disabled", true);
 
     if (update_field_id) {
-      headers["X-Horizon-Add-To-Field"] = update_field_id;
+      headers["X-Horizon-Add-To-Field"] = update_field_id;     
+	    if (edit_option_index) {
+	      headers["X-Horizon-Edit-Option-Index"] = edit_option_index;
+	    }
     }
 
     ajaxOpts = {
@@ -239,6 +246,7 @@ horizon.addInitFunction(horizon.modals.init = function() {
       success: function (data, textStatus, jqXHR) {
         var redirect_header = jqXHR.getResponseHeader("X-Horizon-Location"),
           add_to_field_header = jqXHR.getResponseHeader("X-Horizon-Add-To-Field"),
+          edit_option_index_header = jqXHR.getResponseHeader("X-Horizon-Edit-Option-Index"),
           json_data, field_to_update;
         if (redirect_header === null) {
           $('.ajax-modal, .dropdown-toggle').removeAttr("disabled");
@@ -249,30 +257,15 @@ horizon.addInitFunction(horizon.modals.init = function() {
         }
         else if (add_to_field_header) {
           json_data = $.parseJSON(data);
-          field_to_update = $("#" + add_to_field_header);
-          if(field_to_update.prop('tagName').toLowerCase()=='ul') {
-            var nli, length, nlabel, ninput;
-            length = $('[id^="'+add_to_field_header+'_"]').length;
-            nli = $('<li></li>');
-            nlabel = $('<label></label>');
-            ninput = $('<input type="checkbox"></input>');
-
-            nlabel.attr('for', add_to_field_header+'_'+length);
-            nlabel.html(' '+json_data[1]);
-
-            ninput.attr('id', add_to_field_header+'_'+length);
-            ninput.attr('name', add_to_field_header.slice(3));
-            ninput.attr('value', json_data[0]);
-
-            nlabel.prepend(ninput);
-            nli.append(nlabel);
-            field_to_update.append(nli);
-          }
-          else {
-            field_to_update.append("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
-            field_to_update.change();
-            field_to_update.val(json_data[0]);
-          }
+	      field_to_update = $("#" + add_to_field_header);
+          if (edit_option_index_header) {
+            $(field_to_update.children()[edit_option_index_header]).after("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
+            $(field_to_update.children()[edit_option_index_header]).remove();
+          } else {
+	        field_to_update.append("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
+	      }
+	      field_to_update.change();
+	      field_to_update.val(json_data[0]);
         } else {
           horizon.modals.success(data, textStatus, jqXHR);
         }
@@ -360,6 +353,7 @@ horizon.addInitFunction(horizon.modals.init = function() {
       },
       success: function (data, textStatus, jqXHR) {
         var update_field_id = $this.attr('data-add-to-field'),
+          option_index = $this.attr('option-to-edit'),
           modal,
           form;
         modal = horizon.modals.success(data, textStatus, jqXHR);
@@ -367,6 +361,9 @@ horizon.addInitFunction(horizon.modals.init = function() {
           form = modal.find("form");
           if (form.length) {
             form.attr("data-add-to-field", update_field_id);
+            if (option_index) {
+            	form.attr("option-index", option_index)
+            }
           }
         }
       }

@@ -9,6 +9,7 @@ from django.views.decorators.debug import sensitive_variables  # noqa
 from django.http import HttpResponse  # noqa
 
 from oslo_utils import strutils
+from oslo_serialization import jsonutils
 
 from horizon import exceptions
 from horizon import forms
@@ -275,6 +276,39 @@ class DynamicListForm(forms.SelfHandlingForm):
                 self.fields[key] = value
         else:
             self.fields[self.property] = forms.CharField(label=self.property, required=False)
+
+    def handle(self, request, data):
+        dt = data.get(self.property, data)
+        if isinstance(dt, dict):
+            tt = dict((k, v) for k, v in dt.items() if v)
+            return json.dumps(tt)
+        else:
+            return dt
+        
+class EditDynamicListForm(DynamicListForm):
+    class Meta(object):
+        name = _('Edit Item')
+        
+    def __init__(self, *args, **kwargs):
+        self.resource_type = kwargs.pop('resource_type')
+        self.property = kwargs.pop('property')
+        self.value = kwargs.pop('value')
+        request = kwargs.get('request')
+        super(DynamicListForm, self).__init__(*args, **kwargs)
+        target_cls = resource_type_map.get(self.resource_type, None)
+        self.res_cls = target_cls(request)
+        self.prop_schema = self._get_property_schema(request, self.resource_type, self.property)
+        schema = self.prop_schema.get('schema', None)
+        if schema:
+            fields = self.res_cls.generate_prop_fields(schema['*']['schema'])
+            inits = jsonutils.loads(self.value)
+            for key, value in fields.items():
+                self.fields[key] = value
+                self.fields[key].initial = inits[key]
+                
+        else:
+            self.fields[self.property] = forms.CharField(label=self.property, required=False)
+            self.fields[self.property].initial = self.value;
 
     def handle(self, request, data):
         dt = data.get(self.property, data)

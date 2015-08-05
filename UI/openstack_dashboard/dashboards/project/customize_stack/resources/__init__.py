@@ -16,6 +16,7 @@ from openstack_dashboard.dashboards.project.instances \
 from openstack_dashboard.dashboards.project.customize_stack \
     import api as project_api
 from openstack_dashboard import api
+from django.utils.datastructures import MultiValueDict, MergeDict
 
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ValidationError
@@ -120,11 +121,17 @@ class MapCharField(forms.CharField):
             raise ValidationError(self.error_messages['invalid'], code='invalid')
         return ret
 
-
-class DynamicListWidget(forms.CheckboxSelectMultiple):
+class DynamicListWidget(forms.SelectMultiple):
     _data_add_url_attr = "data-add-item-url"
-    has_del_btn = True;
-
+    
+    def __init__(self, attrs=None, choices=()):
+        attrs = {'class':'dynamic_listbox'}
+        super(DynamicListWidget, self).__init__(attrs)
+        # choices can be any iterable, but we may need to render this widget
+        # multiple times. Thus, collapse it into a list so it can be consumed
+        # more than once.
+        self.choices = list(choices)
+        
     def render(self, *args, **kwargs):
         add_item_url = self.get_add_item_url()
         if add_item_url is not None:
@@ -142,7 +149,6 @@ class DynamicListWidget(forms.CheckboxSelectMultiple):
                 return urlresolvers.reverse(self.add_item_link)
         except urlresolvers.NoReverseMatch:
             return self.add_item_link
-
 
 class DynamicListField(forms.MultipleChoiceField):
     widget = DynamicListWidget

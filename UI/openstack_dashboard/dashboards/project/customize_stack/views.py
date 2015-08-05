@@ -215,7 +215,6 @@ class EditResourceView(forms.ModalFormView):
         kwargs['resource'] = kwargs['initial']['resource']
         return kwargs
 
-
 class DynamicListView(forms.ModalFormView):
     template_name = 'project/customize_stack/additem.html'
     modal_header = _("Add Item")
@@ -242,6 +241,39 @@ class DynamicListView(forms.ModalFormView):
         kwargs = super(DynamicListView, self).get_form_kwargs()
         kwargs['resource_type'] = self.kwargs['resource_type']
         kwargs['property'] = self.kwargs['property']
+        return kwargs
+
+    def get_form(self, form_class):
+        """Returns an instance of the form to be used in this view."""
+        return form_class(request=self.request, **self.get_form_kwargs())
+    
+class EditDynamicListView(forms.ModalFormView):
+    template_name = 'project/customize_stack/additem.html'
+    modal_header = _("Edit Item")
+    form_id = "edit_item"
+    form_class = project_forms.EditDynamicListForm
+    submit_label = _("Confirm")
+    submit_url = "horizon:project:customize_stack:edit_item"
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Edit Item")
+
+    def get_object_id(self, obj):
+        return obj
+
+    def get_object_display(self, obj):
+        return obj
+
+    def get_context_data(self, **kwargs):
+        context = super(EditDynamicListView, self).get_context_data(**kwargs)
+        args = (self.kwargs['resource_type'], self.kwargs['property'], self.kwargs['value'])
+        context['submit_url'] = reverse(self.submit_url, args=args)
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super(EditDynamicListView, self).get_form_kwargs()
+        kwargs['resource_type'] = self.kwargs['resource_type']
+        kwargs['property'] = self.kwargs['property']
+        kwargs['value'] = self.kwargs['value']
         return kwargs
 
     def get_form(self, form_class):

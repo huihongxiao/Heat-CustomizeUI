@@ -63,10 +63,13 @@
             <a href="{{ add_item_link }}" data-add-to-field="{{ field.auto_id }}" class='btn btn-default ajax-add ajax-modal'>
               <span class="fa fa-plus"></span>
             </a>
-            {% with item_to_del=field|item_to_del %}
-            {% if item_to_del %}
-            <a href="javascript:void(0);" onclick="del_items('{{item_to_del}}')" class='btn btn-default'>
+            {% with widget_to_handle=field|widget_to_handle %}
+            {% if widget_to_handle %}
+            <a href="javascript:void(0);" onclick="del_items('{{widget_to_handle}}')" class='btn btn-default dynamic_list_btn'>
               <span class="fa fa-minus"></span>
+            </a>
+            <a href="javascript:void(0);" onclick="edit_item('{{widget_to_handle}}', '{{ add_item_link }}')" data-add-to-field="{{ field.auto_id }}" class='btn btn-default dynamic_list_btn'>
+              <span class="fa fa-edit"></span>
             </a>
       	    {% endif %}
    		    {% endwith %}
