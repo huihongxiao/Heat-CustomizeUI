@@ -13,6 +13,7 @@ import django.views.generic
 
 from horizon import exceptions
 from horizon import forms
+from horizon.forms import views as forms_views
 from horizon import tables
 from horizon import tabs
 from horizon.utils import memoized
@@ -80,7 +81,7 @@ class ModifyResourceView(forms.ModalFormView):
         else:
             kwargs['parameters'] = self.kwargs
         return kwargs
-
+   
 class PreviewResourceDetailsView(forms.ModalFormMixin, views.HorizonTemplateView):
     template_name = 'project/customize_stack/preview_details.html'
     page_title = _("Preview Resource Details")
@@ -268,3 +269,15 @@ class EditDynamicListView(forms.ModalFormView):
     def get_form(self, form_class):
         """Returns an instance of the form to be used in this view."""
         return form_class(request=self.request, **self.get_form_kwargs())
+    
+    def form_valid(self, form):
+        response = super(EditDynamicListView, self).form_valid(form)
+        
+        handled = form.handle(self.request, form.cleaned_data)
+        if handled:
+            if forms_views.ADD_TO_FIELD_HEADER in self.request.META:
+                if "HTTP_X_HORIZON_EDIT_OPTION_INDEX" in self.request.META:
+                    option_idx = self.request.META["HTTP_X_HORIZON_EDIT_OPTION_INDEX"]
+                    response["X-Horizon-Edit-Option-Index"] = option_idx
+        
+        return response
