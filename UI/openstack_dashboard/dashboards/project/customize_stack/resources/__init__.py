@@ -132,12 +132,14 @@ class DynamicListWidget(forms.SelectMultiple):
         # more than once.
         self.choices = list(choices)
         
-    def render(self, *args, **kwargs):
+    def render(self, name, value, attrs=None, choices=()):
         add_item_url = self.get_add_item_url()
         if add_item_url is not None:
             self.attrs[self._data_add_url_attr] = add_item_url
-        return super(DynamicListWidget, self).render(*args, **kwargs)
-
+        if value:
+            choices = [(v,v) for v in value]
+        return super(DynamicListWidget, self).render(name, value, attrs, choices)
+    
     def get_add_item_url(self):
         if callable(self.add_item_link):
             return self.add_item_link()
@@ -183,6 +185,7 @@ class DynamicListField(forms.MultipleChoiceField):
                 if item:
                     ret.append(item)
         return ret
+    
 
 class BaseResource(object):
 
