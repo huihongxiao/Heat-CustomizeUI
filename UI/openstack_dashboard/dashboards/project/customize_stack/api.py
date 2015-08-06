@@ -241,7 +241,12 @@ def _generate_template(resources):
 
     return json.loads(json.dumps(template))
 
-
+def get_template_content(request):
+    resources = _get_resources_from_file(request.user.id)
+    template = _generate_template(resources)
+    return json.dumps(template, indent=4)
+    
+    
 def launch_stack(request, stack_name, enable_rollback, timeout):
     resources = _get_resources_from_file(request.user.id)
     template = _generate_template(resources)

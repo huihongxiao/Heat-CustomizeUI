@@ -255,7 +255,7 @@ function build_reverse_links(node){
 
 if ($(cs_container).length){
   var width = $(cs_container).width(),
-	height = window.innerHeight - 200;
+	height = window.innerHeight - 210;
 	if (height < 500){
 		height = 500;
 	}
@@ -302,7 +302,7 @@ if ($(cs_container).length){
 	//resize the canvas when the window is resized.
 	$(window).resize(function(){
  		var width = $(cs_container).width(),
- 		height = window.innerHeight - 200;
+ 		height = window.innerHeight - 210;
  		if (height < 500){
  			height = 500;
  		}

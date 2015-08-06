@@ -22,36 +22,25 @@ from openstack_dashboard.dashboards.project.customize_stack \
     import forms as project_forms
 from openstack_dashboard.dashboards.project.customize_stack \
     import api as project_api
+from openstack_dashboard.dashboards.project.customize_stack \
+    import tabs as project_tabs
 
 
 LOG = logging.getLogger(__name__)
 
-class IndexView(views.APIView):
-    # A very simple class-based view...
-    template_name = 'project/customize_stack/index.html'
+class IndexView(tabs.TabView):
+    redirect_url = 'horizon:project:customize_stack:index'
+    tab_group_class = project_tabs.CustomizeStackTabs
+    template_name = 'project/customize_stack/tabs_group.html'
+    page_title = _("Customize stacks")
 
-
-    def __init__(self, *args, **kwargs):
-        super(IndexView, self).__init__(*args, **kwargs)
-
-    def get_data(self, request, context, *args, **kwargs):
-        context = {}
-        d3_data = {}
-        stack = {
-            'name': "customize stack",
-            'image': "/static/dashboard/img/stack-green.svg",
-            'image_size': 60,
-            'image_x': -30,
-            'image_y': -30,
-            'text_x': 40,
-            'text_y': ".35em",
-            'info_box': "<img src=\"/static/dashboard/img/stack-green.svg\" width=\"35px\" height=\"35px\" />\n<div id=\"stack_info\">\n    <h3>customize stack</h3>\n    <p class=\"error\">Create your own stack</p>\n</div>\n<div class=\"clear\"></div>\n\n\n    \n\n"
-        }
-        d3_data['nodes'] = []
-        d3_data['stack'] = stack
-        context['d3_data'] = json.dumps(d3_data)
-        # Add data to the context here...
+    def get_context_data(self, **kwargs):
+        context = super(IndexView, self).get_context_data(**kwargs)
         return context
+
+    def get_tabs(self, request, *args, **kwargs):
+        return project_tabs.CustomizeStackTabs(request, **kwargs)
+    
 
 class SelectResourceView(forms.ModalFormView):
     template_name = 'project/customize_stack/select.html'
