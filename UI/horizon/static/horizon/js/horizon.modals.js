@@ -258,14 +258,24 @@ horizon.addInitFunction(horizon.modals.init = function() {
         else if (add_to_field_header) {
           json_data = $.parseJSON(data);
 	      field_to_update = $("#" + add_to_field_header);
-          if (edit_option_index_header) {
-            $(field_to_update.children()[edit_option_index_header]).after("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
-            $(field_to_update.children()[edit_option_index_header]).remove();
-          } else {
+	      if (field_to_update.hasClass('dynamic_listbox')) {
+	          if (edit_option_index_header) {
+	            $(field_to_update.children()[edit_option_index_header]).after("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
+	            $(field_to_update.children()[edit_option_index_header]).remove();
+			    field_to_update.change();
+			    field_to_update.val('');
+	            $(field_to_update.children()[edit_option_index_header]).prop('selected', true);
+	          } else {
+		        field_to_update.append("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
+			    field_to_update.change();
+			    field_to_update.val('');
+			    $(field_to_update.children(':last')).prop('selected', true);
+		      }
+	      } else {
 	        field_to_update.append("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
+		    field_to_update.change();
+		    field_to_update.val(json_data[0]);
 	      }
-	      field_to_update.change();
-	      field_to_update.val(json_data[0]);
         } else {
           horizon.modals.success(data, textStatus, jqXHR);
         }
