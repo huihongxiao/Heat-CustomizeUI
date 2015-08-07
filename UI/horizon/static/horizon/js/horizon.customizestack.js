@@ -254,8 +254,13 @@ function build_reverse_links(node){
 }
 
 function zoomed() {
-    group.attr("transform",   
-        "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");  
+    if (d3.event.sourceEvent.type == 'wheel' || d3.event.sourceEvent.type == 'dblclick') {
+        group.transition().duration(300).attr("transform",
+            "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+    } else {
+        group.attr("transform",
+            "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+    }
 } 
 
 if ($(cs_container).length){
