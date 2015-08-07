@@ -138,7 +138,7 @@ class DynamicListWidget(forms.SelectMultiple):
             self.attrs[self._data_add_url_attr] = add_item_url
         if value:
             choices = [(v,v) for v in value]
-        return super(DynamicListWidget, self).render(name, value, attrs, choices)
+        return super(DynamicListWidget, self).render(name, None, attrs, choices)
     
     def get_add_item_url(self):
         if callable(self.add_item_link):
