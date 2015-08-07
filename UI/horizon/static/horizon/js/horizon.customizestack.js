@@ -253,6 +253,11 @@ function build_reverse_links(node){
   }
 }
 
+function zoomed() {
+    group.attr("transform",   
+        "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");  
+} 
+
 if ($(cs_container).length){
   var width = $(cs_container).width(),
 	height = window.innerHeight - 210;
@@ -279,11 +284,16 @@ if ($(cs_container).length){
       .linkDistance(100)
       .size([width, height])
       .on("tick", tick),
+    zoom = d3.behavior.zoom()
+      .scaleExtent([0.1, 10])
+      .on("zoom", zoomed),
     svg = d3.select(cs_container).append("svg")
       .attr("width", width)
-      .attr("height", height),
-    node = svg.selectAll(".node"),
-    link = svg.selectAll(".link"),
+      .attr("height", height)
+      .call(zoom),
+    group = svg.append("g"),
+    node = group.selectAll(".node"),
+    link = group.selectAll(".link"),
     needs_update = false,
     nodes = force.nodes(),
     links = force.links();
