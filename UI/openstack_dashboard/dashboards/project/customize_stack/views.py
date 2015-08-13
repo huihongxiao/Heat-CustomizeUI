@@ -1,6 +1,7 @@
 import json
 import logging
 from operator import attrgetter
+import six
 
 import yaml
 
@@ -12,6 +13,7 @@ import django.views.generic
 
 from horizon import exceptions
 from horizon import forms
+from horizon.forms import views as forms_views
 from horizon import tables
 from horizon import tabs
 from horizon.utils import memoized
@@ -21,36 +23,25 @@ from openstack_dashboard.dashboards.project.customize_stack \
     import forms as project_forms
 from openstack_dashboard.dashboards.project.customize_stack \
     import api as project_api
+from openstack_dashboard.dashboards.project.customize_stack \
+    import tabs as project_tabs
 
 
 LOG = logging.getLogger(__name__)
 
-class IndexView(views.APIView):
-    # A very simple class-based view...
-    template_name = 'project/customize_stack/index.html'
+class IndexView(tabs.TabView):
+    redirect_url = 'horizon:project:customize_stack:index'
+    tab_group_class = project_tabs.CustomizeStackTabs
+    template_name = 'project/customize_stack/tabs_group.html'
+    page_title = _("Customize stacks")
 
-
-    def __init__(self, *args, **kwargs):
-        super(IndexView, self).__init__(*args, **kwargs)
-
-    def get_data(self, request, context, *args, **kwargs):
-        context = {}
-        d3_data = {}
-        stack = {
-            'name': "customize stack",
-            'image': "/static/dashboard/img/stack-green.svg",
-            'image_size': 60,
-            'image_x': -30,
-            'image_y': -30,
-            'text_x': 40,
-            'text_y': ".35em",
-            'info_box': "<img src=\"/static/dashboard/img/stack-green.svg\" width=\"35px\" height=\"35px\" />\n<div id=\"stack_info\">\n    <h3>customize stack</h3>\n    <p class=\"error\">Create your own stack</p>\n</div>\n<div class=\"clear\"></div>\n\n\n    \n\n"
-        }
-        d3_data['nodes'] = []
-        d3_data['stack'] = stack
-        context['d3_data'] = json.dumps(d3_data)
-        # Add data to the context here...
+    def get_context_data(self, **kwargs):
+        context = super(IndexView, self).get_context_data(**kwargs)
         return context
+
+    def get_tabs(self, request, *args, **kwargs):
+        return project_tabs.CustomizeStackTabs(request, **kwargs)
+    
 
 class SelectResourceView(forms.ModalFormView):
     template_name = 'project/customize_stack/select.html'
@@ -90,7 +81,7 @@ class ModifyResourceView(forms.ModalFormView):
         else:
             kwargs['parameters'] = self.kwargs
         return kwargs
-
+   
 class PreviewResourceDetailsView(forms.ModalFormMixin, views.HorizonTemplateView):
     template_name = 'project/customize_stack/preview_details.html'
     page_title = _("Preview Resource Details")
@@ -213,3 +204,80 @@ class EditResourceView(forms.ModalFormView):
             kwargs['parameters'] = kwargs['initial']['parameters']
         kwargs['resource'] = kwargs['initial']['resource']
         return kwargs
+
+class DynamicListView(forms.ModalFormView):
+    template_name = 'project/customize_stack/additem.html'
+    modal_header = _("Add Item")
+    form_id = "add_item"
+    form_class = project_forms.DynamicListForm
+    submit_label = _("Add")
+    submit_url = "horizon:project:customize_stack:add_item"
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Add Item")
+
+    def get_object_id(self, obj):
+        return obj
+
+    def get_object_display(self, obj):
+        return obj
+
+    def get_context_data(self, **kwargs):
+        context = super(DynamicListView, self).get_context_data(**kwargs)
+        args = (self.kwargs['resource_type'], self.kwargs['property'])
+        context['submit_url'] = reverse(self.submit_url, args=args)
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super(DynamicListView, self).get_form_kwargs()
+        kwargs['resource_type'] = self.kwargs['resource_type']
+        kwargs['property'] = self.kwargs['property']
+        return kwargs
+
+    def get_form(self, form_class):
+        """Returns an instance of the form to be used in this view."""
+        return form_class(request=self.request, **self.get_form_kwargs())
+    
+class EditDynamicListView(forms.ModalFormView):
+    template_name = 'project/customize_stack/additem.html'
+    modal_header = _("Edit Item")
+    form_id = "edit_item"
+    form_class = project_forms.EditDynamicListForm
+    submit_label = _("Confirm")
+    submit_url = "horizon:project:customize_stack:edit_item"
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Edit Item")
+
+    def get_object_id(self, obj):
+        return obj
+
+    def get_object_display(self, obj):
+        return obj
+
+    def get_context_data(self, **kwargs):
+        context = super(EditDynamicListView, self).get_context_data(**kwargs)
+        args = (self.kwargs['resource_type'], self.kwargs['property'], self.kwargs['value'])
+        context['submit_url'] = reverse(self.submit_url, args=args)
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super(EditDynamicListView, self).get_form_kwargs()
+        kwargs['resource_type'] = self.kwargs['resource_type']
+        kwargs['property'] = self.kwargs['property']
+        kwargs['value'] = self.kwargs['value']
+        return kwargs
+
+    def get_form(self, form_class):
+        """Returns an instance of the form to be used in this view."""
+        return form_class(request=self.request, **self.get_form_kwargs())
+    
+    def form_valid(self, form):
+        response = super(EditDynamicListView, self).form_valid(form)
+        
+        handled = form.handle(self.request, form.cleaned_data)
+        if handled:
+            if forms_views.ADD_TO_FIELD_HEADER in self.request.META:
+                if "HTTP_X_HORIZON_EDIT_OPTION_INDEX" in self.request.META:
+                    option_idx = self.request.META["HTTP_X_HORIZON_EDIT_OPTION_INDEX"]
+                    response["X-Horizon-Edit-Option-Index"] = option_idx
+        
+        return response

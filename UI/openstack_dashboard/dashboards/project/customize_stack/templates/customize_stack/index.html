@@ -1,19 +1,12 @@
-{% extends 'base.html' %}
 {% load i18n %}
 {% load i18n sizeformat %}
-{% block title %}{% trans "Customize Stack" %}{% endblock %}
 
-{% block page_header %}
-  {% include "horizon/common/_page_header.html" with title=_("Customize Stack") %}
-{% endblock page_header %}
-
-{% block main %}
 <noscript>
 {% trans "This pane needs javascript support." %}
 </noscript>
 <div class="topologyNavi">
   <a href="{% url 'horizon:project:customize_stack:select_resource' %}" id="cus_stack__action_add" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-plus"></span>{% trans " Add Resource"%}</a>
-  <a href="{% url 'horizon:project:customize_stack:export_template' %}" class="btn btn-default"><span class="fa fa-download"></span>{% trans " Export Template"%}</a>
+  <a href="{% url 'horizon:project:customize_stack:export_template' %}" id="cus_stack__export" class="btn btn-default btn-sm"><span class="fa fa-download"></span>{% trans " Export Template"%}</a>
   <a href="{% url 'horizon:project:customize_stack:launch_stack' %}" id="cus_stack__action_launch" class="btn btn-default btn-sm btn-launch ajax-modal"><span class="fa fa-cloud-upload"></span>{% trans " Lauch Stack"%}</a>
   <a href="{% url 'horizon:project:customize_stack:clear_canvas' %}" id="cus_stack__action_add" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-eraser"></span>{% trans " Clear Canvas"%}</a>
 </div>
@@ -23,9 +16,8 @@
         <div id="node_info"></div>
         <div id="opt_bar">
         	<a href="" id="cus_stack_action_edit" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-edit"></span>{% trans " Edit"%}</a>
-        	<a href="" id="cus_stack_action_delete" class="btn btn-default btn-sm btn-launch ajax-modal"><span class="fa fa-remove"></span>{% trans " Delete"%}</a>
+        	<a href="" id="cus_stack_action_delete" class="btn btn-default btn-sm btn-launch ajax-modal"><span class="fa fa-times"></span>{% trans " Delete"%}</a>
         </div>
     </div>
     <div id="heat_topology"></div>
 </div>
-{% endblock %}

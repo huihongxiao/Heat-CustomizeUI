@@ -9,8 +9,7 @@ class FloatingIP(resources.BaseResource):
     def __init__(self, request):
         super(FloatingIP, self).__init__(request)
         self.resource_type = 'OS::Neutron::FloatingIP'
-        self.properties = ['fixed_ip_address', 'floating_ip_address',
-                           'floating_network', 'port_id']
+        self.invisible_properties = ['floating_network_id']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -61,8 +60,6 @@ class Port(resources.BaseResource):
     def __init__(self, request):
         super(Port, self).__init__(request)
         self.resource_type = 'OS::Neutron::Port'
-        self.properties = ['fixed_ips', 'network',
-                           'security_groups']
         self.invisible_properties = ['subnet_id']
 
     def handle_prop(self, prop_name, prop_data):
@@ -76,8 +73,11 @@ class Port(resources.BaseResource):
             choices = self._populate_network_choices()
             field_args['choices'] = choices
             field = self.forms.ChoiceField(**field_args)
-        # elif prop_name == 'subnet':
-        #     choices = self._populate_network_choices()
+        elif prop_name == 'security_groups':
+            choices = self._populate_secgroups_choices()
+            field_args['choices'] = choices
+            field_args['widget'] = self.forms.CheckboxSelectMultiple
+            field = self.forms.MultipleChoiceField(**field_args)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
         return field
@@ -87,8 +87,6 @@ class Subnet(resources.BaseResource):
     def __init__(self, request):
         super(Subnet, self).__init__(request)
         self.resource_type = 'OS::Neutron::Subnet'
-        self.properties = ['cidr', 'dns_nameservers', 'enable_dhcp',
-                           'gateway_ip', 'network', 'allocation_pools']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -116,7 +114,6 @@ class LoadBalancer(resources.BaseResource):
     def __init__(self, request):
         super(LoadBalancer, self).__init__(request)
         self.resource_type = 'OS::Neutron::LoadBalancer'
-        self.properties = ['pool_id', 'protocol_port']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {
@@ -138,8 +135,7 @@ class Pool(resources.BaseResource):
     def __init__(self, request):
         super(Pool, self).__init__(request)
         self.resource_type = 'OS::Neutron::Pool'
-        self.properties = ['lb_method', 'protocol', 'subnet', 'monitors',
-                           'vip']
+        self.invisible_properties = ['subnet_id']
 
     def handle_prop(self, prop_name, prop_data):
         field_args = {

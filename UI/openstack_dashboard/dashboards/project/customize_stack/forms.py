@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+import six
 
 from django.forms import ValidationError  # noqa
 from django.utils.translation import ugettext_lazy as _
@@ -8,6 +9,7 @@ from django.views.decorators.debug import sensitive_variables  # noqa
 from django.http import HttpResponse  # noqa
 
 from oslo_utils import strutils
+from oslo_serialization import jsonutils
 
 from horizon import exceptions
 from horizon import forms
@@ -79,9 +81,6 @@ class SelectResourceForm(forms.SelfHandlingForm):
     def _get_resource_type(self, request, resource_type):
         resource_properties = {}
         try:
-            # resource = api.heat.resource_type_generate_template(request, resource_type)
-            # resource_properties = resource['Parameters']
-            # import ipdb;ipdb.set_trace()
             resource = api.heat.resource_type_get(request, resource_type)
             resource_properties = resource['properties']
         except Exception:
@@ -147,8 +146,8 @@ class ModifyResourceForm(forms.SelfHandlingForm):
             self.origin_resource = resource
         self.fields['depends_on'].choices = (resource_name_choice)
         LOG.info('Original Resource Parameters %s' % parameters)
-        prop_type = parameters['resource_type']
-        target_cls = resource_type_map.get(prop_type, None)
+        res_type = parameters['resource_type']
+        target_cls = resource_type_map.get(res_type, None)
         self.res_cls = target_cls(self.request)
         self._build_parameter_fields(parameters, resource)
 
@@ -156,9 +155,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         if resource:
             for prop_name, prop_data in sorted(params.items()):
                 if (prop_name in resource and
-                        isinstance(params[prop_name], dict) and
-                        params[prop_name]['type'] in ('integer', 'number',
-                                                      'string', 'boolean')):
+                        isinstance(params[prop_name], dict)):
                     params[prop_name]['default'] = resource.get(prop_name)
 
         self.fields['resource_type'].initial = params.pop('resource_type')
@@ -189,7 +186,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         res_data = self.res_cls.generate_res_data(data)
         if self.origin_resource:
             project_api.modify_resource_in_draft(self.request, res_data, self.origin_resource['resource_name'])
-        else :
+        else:
             project_api.add_resource_to_draft(self.request, res_data)
         # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
         # request so that we can chain it as an input to the next view...
@@ -235,7 +232,8 @@ class ClearCanvasForm(forms.SelfHandlingForm):
     def handle(self, request, data):
         project_api.clean_template_folder(self.request.user.id, only_template=True)
         return True
-    
+
+
 class DeleteResourceForm(forms.SelfHandlingForm):
     class Meta(object):
         name = _('Modify Resource Properties')
@@ -247,3 +245,75 @@ class DeleteResourceForm(forms.SelfHandlingForm):
     def handle(self, request, data):
         project_api.del_resource_from_draft(request, self.resource_name)
         return True
+
+
+class DynamicListForm(forms.SelfHandlingForm):
+    class Meta(object):
+        name = _('Add Item to Property')
+
+    def _get_property_schema(self, request, resource_type, property):
+        property_schema = {}
+        try:
+            resource = api.heat.resource_type_get(request, resource_type)
+            property_schema = resource['properties'][property]
+        except Exception:
+            msg = _('Unable to retrieve details of resource type %(rt)s' % {'rt': resource_type})
+            exceptions.handle(request, msg)
+        return property_schema
+
+    def __init__(self, *args, **kwargs):
+        self.resource_type = kwargs.pop('resource_type')
+        self.property = kwargs.pop('property')
+        request = kwargs.get('request')
+        super(DynamicListForm, self).__init__(*args, **kwargs)
+        target_cls = resource_type_map.get(self.resource_type, None)
+        self.res_cls = target_cls(request)
+        self.prop_schema = self._get_property_schema(request, self.resource_type, self.property)
+        schema = self.prop_schema.get('schema', None)
+        if schema:
+            fields = self.res_cls.generate_prop_fields(schema['*']['schema'])
+            for key, value in fields.items():
+                self.fields[key] = value
+        else:
+            self.fields[self.property] = forms.CharField(label=self.property, required=False)
+
+    def handle(self, request, data):
+        dt = data.get(self.property, data)
+        if isinstance(dt, dict):
+            tt = dict((k, v) for k, v in dt.items() if v)
+            return json.dumps(tt)
+        else:
+            return dt
+        
+class EditDynamicListForm(DynamicListForm):
+    class Meta(object):
+        name = _('Edit Item')
+        
+    def __init__(self, *args, **kwargs):
+        self.resource_type = kwargs.pop('resource_type')
+        self.property = kwargs.pop('property')
+        self.value = kwargs.pop('value')
+        request = kwargs.get('request')
+        super(DynamicListForm, self).__init__(*args, **kwargs)
+        target_cls = resource_type_map.get(self.resource_type, None)
+        self.res_cls = target_cls(request)
+        self.prop_schema = self._get_property_schema(request, self.resource_type, self.property)
+        schema = self.prop_schema.get('schema', None)
+        if schema:
+            fields = self.res_cls.generate_prop_fields(schema['*']['schema'])
+            inits = jsonutils.loads(self.value)
+            for key, value in fields.items():
+                self.fields[key] = value
+                self.fields[key].initial = inits[key]
+                
+        else:
+            self.fields[self.property] = forms.CharField(label=self.property, required=False)
+            self.fields[self.property].initial = self.value;
+
+    def handle(self, request, data):
+        dt = data.get(self.property, data)
+        if isinstance(dt, dict):
+            tt = dict((k, v) for k, v in dt.items() if v)
+            return json.dumps(tt)
+        else:
+            return dt

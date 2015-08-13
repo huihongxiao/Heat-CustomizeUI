@@ -1669,16 +1669,18 @@ label.log-length {
 /**** Customize Stack CSS ****/
 #heat_topology {
   margin-left: 192px;
-  height: 506px;
   border-width: 3px;
   border-style: solid;
   border-color: #dedede;
+}
+#heat_topology svg {
+  margin-bottom: -5px;
 }
 
 #detail_box {
   position: absolute;
   width: 195px;
-  height: 506px;
+  height: 100%;
   border-width: 3px;
   border-style: solid;
   border-color: #dedede;
@@ -1743,6 +1745,19 @@ label.log-length {
 #opt_bar a{
   margin-left: 9px;
   width: 70px;
+}
+
+select.dynamic_listbox {
+	height: 96px;
+}
+
+.dynamic_list_btn {
+	display: block;
+	margin-top: -1px;
+	border-radius: 0;
+}
+.dynamic_list_btn span {
+	width: 10px;
 }
 
 /* Styling for dynamic scroll bar */

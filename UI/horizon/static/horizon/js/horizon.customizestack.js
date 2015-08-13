@@ -20,28 +20,39 @@
  * under the License.
  */
 
-var container = "#heat_topology";
+var cs_container = "#heat_topology";
 var node_selected = false;
 
 function del_items(name) {
-	var id, ul; 
+	var id; 
 	id = 'id_' + name;
-	ul = $('#'+id);
-	$.each(ul.children(), function(i, li) {
-		var checkbox = $(li).children().children();
-		if(checkbox.is(':checked')) {
-			$(li).remove();
-		}
-	});
-	$.each(ul.children(), function(i, li) {
-		var label = $(li).children();
-		input = label.children();
-		label.attr('for', id+'_'+i);
-		input.attr('id', id+'_'+i);
-	});
+	$('#'+id+' option:selected').remove();
 }
 
-function update(){
+function edit_item(name, add_link) {
+	var id, widget, btn_grp, edit_btn, edit_link, value = null, index; 
+	id = 'id_' + name;
+	widget = $('#'+id);
+	btn_grp = widget.next();
+	edit_btn = $(btn_grp.children()[2]);
+	edit_link = add_link.replace('add_item', 'edit_item');
+	$.each(widget.children(), function(i, option) {
+		if($(option).is(':selected')) {
+			value = $(option).attr('value');
+			index = i;
+		}
+	});
+	if(value) {
+		edit_btn.addClass('ajax-add ajax-modal');
+		edit_btn.attr('href', edit_link + value + '/');
+		edit_btn.attr('option-to-edit', index);
+	} else {
+		edit_btn.removeClass('ajax-add ajax-modal');
+		edit_btn.attr('href', 'javascript:void(0);');
+	}
+}
+
+function cs_update(){
   node = node.data(nodes, function(d) { return d.name; });
   link = link.data(links);
 
@@ -82,6 +93,7 @@ function update(){
     }
   });
   node.on("click", function(d) {
+	$('#detail_box').perfectScrollbar('destroy');
     icon = $('<img/>');
     icon.attr('src', d.image);
     $('#node_icon').html(icon);
@@ -90,6 +102,7 @@ function update(){
 	$('#cus_stack_action_delete').attr('href',"/project/customize_stack/delete_resource/" + d.name + "/");
 	$('#cus_stack_action_edit').attr('href',"/project/customize_stack/edit_resource/" + d.name + "/");
 	
+	$('#detail_box').perfectScrollbar();
     node_selected = true;
     d3.event.stopPropagation()
   });
@@ -128,7 +141,6 @@ function showDetails(d) {
 		seg.html(d[key]?d[key]:'None');
 		details.append(seg);
 	}
-	$('#detail_box').perfectScrollbar();
 }
 
 function tick() {
@@ -241,9 +253,22 @@ function build_reverse_links(node){
   }
 }
 
-if ($(container).length){
-  var width = $(container).width(),
-    height = 500,
+function zoomed() {
+    if (d3.event.sourceEvent.type == 'wheel' || d3.event.sourceEvent.type == 'dblclick') {
+        group.transition().duration(300).attr("transform",
+            "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+    } else {
+        group.attr("transform",
+            "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+    }
+} 
+
+if ($(cs_container).length){
+  var width = $(cs_container).width(),
+	height = window.innerHeight - 210;
+	if (height < 500){
+		height = 500;
+	}
     ajax_url = '/project/customize_stack/get_draft_template_data',
     graph;
   $('#opt_bar').hide();
@@ -264,11 +289,16 @@ if ($(container).length){
       .linkDistance(100)
       .size([width, height])
       .on("tick", tick),
-    svg = d3.select(container).append("svg")
+    zoom = d3.behavior.zoom()
+      .scaleExtent([0.1, 10])
+      .on("zoom", zoomed),
+    svg = d3.select(cs_container).append("svg")
       .attr("width", width)
-      .attr("height", height),
-    node = svg.selectAll(".node"),
-    link = svg.selectAll(".link"),
+      .attr("height", height)
+      .call(zoom),
+    group = svg.append("g"),
+    node = group.selectAll(".node"),
+    link = group.selectAll(".link"),
     needs_update = false,
     nodes = force.nodes(),
     links = force.links();
@@ -282,13 +312,18 @@ if ($(container).length){
   });
 
   build_links();
-  update();
+  cs_update();
   
 	//resize the canvas when the window is resized.
 	$(window).resize(function(){
- 		var width = $(container).width();
+ 		var width = $(cs_container).width(),
+ 		height = window.innerHeight - 210;
+ 		if (height < 500){
+ 			height = 500;
+ 		}
 		force.size([width, height]);
 		svg.attr("width", width);
+		svg.attr("height", height);
 		force.resume();
 	});
 }
