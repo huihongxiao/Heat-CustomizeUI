@@ -24,32 +24,32 @@ var cs_container = "#heat_topology";
 var node_selected = false;
 
 function del_items(name) {
-	var id; 
-	id = 'id_' + name;
-	$('#'+id+' option:selected').remove();
+  var id; 
+  id = 'id_' + name;
+  $('#'+id+' option:selected').remove();
 }
 
 function edit_item(name, add_link) {
-	var id, widget, btn_grp, edit_btn, edit_link, value = null, index; 
-	id = 'id_' + name;
-	widget = $('#'+id);
-	btn_grp = widget.next();
-	edit_btn = $(btn_grp.children()[2]);
-	edit_link = add_link.replace('add_item', 'edit_item');
-	$.each(widget.children(), function(i, option) {
-		if($(option).is(':selected')) {
-			value = $(option).attr('value');
-			index = i;
-		}
-	});
-	if(value) {
-		edit_btn.addClass('ajax-add ajax-modal');
-		edit_btn.attr('href', edit_link + value + '/');
-		edit_btn.attr('option-to-edit', index);
-	} else {
-		edit_btn.removeClass('ajax-add ajax-modal');
-		edit_btn.attr('href', 'javascript:void(0);');
-	}
+  var id, widget, btn_grp, edit_btn, edit_link, value = null, index; 
+  id = 'id_' + name;
+  widget = $('#'+id);
+  btn_grp = widget.next();
+  edit_btn = $(btn_grp.children()[2]);
+  edit_link = add_link.replace('add_item', 'edit_item');
+  $.each(widget.children(), function(i, option) {
+    if($(option).is(':selected')) {
+      value = $(option).attr('value');
+      index = i;
+    }
+  });
+  if(value) {
+    edit_btn.addClass('ajax-add ajax-modal');
+    edit_btn.attr('href', edit_link + value + '/');
+    edit_btn.attr('option-to-edit', index);
+  } else {
+    edit_btn.removeClass('ajax-add ajax-modal');
+    edit_btn.attr('href', 'javascript:void(0);');
+  }
 }
 
 function cs_update(){
@@ -87,22 +87,21 @@ function cs_update(){
     }
   });
   node.on("mouseout", function() {
-  	if(!node_selected) {
-	  $("#node_icon").html('');
+    if(!node_selected) {
+      $("#node_icon").html('');
       $("#node_info").html('');
     }
   });
   node.on("click", function(d) {
-	$('#detail_box').perfectScrollbar('destroy');
+    $('#detail_box').perfectScrollbar('destroy');
     icon = $('<img/>');
     icon.attr('src', d.image);
     $('#node_icon').html(icon);
     showDetails(d.details);
-	$('#opt_bar').show();
-	$('#cus_stack_action_delete').attr('href',"/project/customize_stack/delete_resource/" + d.name + "/");
-	$('#cus_stack_action_edit').attr('href',"/project/customize_stack/edit_resource/" + d.name + "/");
-	
-	$('#detail_box').perfectScrollbar();
+    $('#opt_bar').show();
+    $('#cus_stack_action_delete').attr('href',"/project/customize_stack/delete_resource/" + d.name + "/");
+    $('#cus_stack_action_edit').attr('href',"/project/customize_stack/edit_resource/" + d.name + "/");
+    $('#detail_box').perfectScrollbar();
     node_selected = true;
     d3.event.stopPropagation()
   });
@@ -111,36 +110,35 @@ function cs_update(){
 }
 
 function showBrief(d) {
-	var details = $('#node_info'),
-		seg;
-	details.html('');
-	seg = $('<h3></h3>');
-	seg.html(d.resource_name);
-	details.append(seg);
-	seg = $('<h4></h4>');
-	seg.html('type');
-	details.append(seg);
-	seg = $('<p></p>');
-	seg.html(d.resource_type);
-	details.append(seg);
+  var details = $('#node_info'),
+    seg;
+  details.html('');
+  seg = $('<h3></h3>');
+  seg.html(d.resource_name);
+  details.append(seg);
+  seg = $('<h4></h4>');
+  seg.html('type');
+  details.append(seg);
+  seg = $('<p></p>');
+  seg.html(d.resource_type);
+  details.append(seg);
 }
 
 function showDetails(d) {
-	var details = $('#node_info'),
-		seg;
-	
-	showBrief(d)
-	
-	for(var key in d) {
-		if(key == 'resource_name' || key == 'resource_type')
-			continue;
-		seg = $('<h4></h4>');
-		seg.html(key);
-		details.append(seg);
-		seg = $('<p></p>');
-		seg.html(d[key]?d[key]:'None');
-		details.append(seg);
-	}
+  var details = $('#node_info'),
+    seg;
+
+  showBrief(d);
+  for(var key in d) {
+    if(key == 'resource_name' || key == 'resource_type')
+      continue;
+    seg = $('<h4></h4>');
+    seg.html(key);
+    details.append(seg);
+    seg = $('<p></p>');
+    seg.html(d[key]?d[key]:'None');
+    details.append(seg);
+  }
 }
 
 function tick() {
@@ -265,21 +263,21 @@ function zoomed() {
 
 if ($(cs_container).length){
   var width = $(cs_container).width(),
-	height = window.innerHeight - 210;
-	if (height < 500){
-		height = 500;
-	}
+  height = window.innerHeight - 230;
+  if (height < 500){
+    height = 500;
+  }
     ajax_url = '/project/customize_stack/get_draft_template_data',
     graph;
   $('#opt_bar').hide();
-	$.ajax({  
+  $.ajax({  
         url: ajax_url,  
         type: 'GET',  
         dataType: 'json',  
         async: false,  
         success: function(json) {
-	      graph = json;
-	    }
+        graph = json;
+      }
     });  
   var force = d3.layout.force()
       .nodes(graph.nodes)
@@ -305,25 +303,26 @@ if ($(cs_container).length){
     
   svg.on("click", function() {
     node_selected = false;
-	$("#node_icon").html('');
+    $("#node_icon").html('');
     $("#node_info").html('');
     $('#opt_bar').hide();
-	$('#detail_box').perfectScrollbar('destroy');
+    $('#detail_box').perfectScrollbar('destroy');
   });
 
   build_links();
   cs_update();
   
-	//resize the canvas when the window is resized.
-	$(window).resize(function(){
- 		var width = $(cs_container).width(),
- 		height = window.innerHeight - 210;
- 		if (height < 500){
- 			height = 500;
- 		}
-		force.size([width, height]);
-		svg.attr("width", width);
-		svg.attr("height", height);
-		force.resume();
-	});
+  //resize the canvas when the window is resized.
+  $(window).resize(function(){
+    var width = $(cs_container).width(),
+    height = window.innerHeight - 230;
+    if (height < 500){
+      height = 500;
+    }
+    force.size([width, height]);
+    svg.attr("width", width);
+    svg.attr("height", height);
+    force.resume();
+    $('#detail_box').perfectScrollbar('update');
+  });
 }
