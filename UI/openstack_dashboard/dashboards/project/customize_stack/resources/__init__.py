@@ -260,7 +260,18 @@ class BaseResource(object):
                 #         field_args['required'] = min_max.get('min', 0) > 0
                 #     if 'max' in min_max:
                 #         field_args['max_length'] = int(min_max['max'])
-        if prop_form:
+        if prop_type in ('list'):
+            field_args['add_item_link'] = "horizon:project:customize_stack:add_item"
+            field_args['add_item_link_args'] = (self.resource_type, prop_name)
+            if field_args['initial']:
+                field_args['choices'] = [
+                    (jsonutils.dumps(item), jsonutils.dumps(item)) if isinstance(item, dict) else (item, item)
+                    for item in field_args['initial']]
+                field_args['initial'] = [item[0] for item in field_args['choices']]
+            else:
+                field_args['choices'] = []
+            field = DynamicListField(**field_args)
+        elif prop_form:
             field = prop_form(**field_args)
         elif prop_type in ('integer', 'number'):
             field = forms.IntegerField(**field_args)
@@ -285,17 +296,6 @@ class BaseResource(object):
                 field = MapField(**field_args)
             else:
                 field = MapCharField(**field_args)
-        elif prop_type in ('list'):
-            field_args['add_item_link'] = "horizon:project:customize_stack:add_item"
-            field_args['add_item_link_args'] = (self.resource_type, prop_name)
-            if field_args['initial']:
-                field_args['choices'] = [
-                    (jsonutils.dumps(item), jsonutils.dumps(item)) if isinstance(item, dict) else (item, item)
-                    for item in field_args['initial']]
-                field_args['initial'] = [item[0] for item in field_args['choices']]
-            else:
-                field_args['choices'] = []
-            field = DynamicListField(**field_args)
         else:
             field = forms.CharField(**field_args)
         return field
