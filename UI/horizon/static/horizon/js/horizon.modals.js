@@ -192,7 +192,8 @@ horizon.addInitFunction(horizon.modals.init = function() {
       edit_option_index = $form.attr("option-index"),
       headers = {},
       modalFileUpload = $form.attr("enctype") === "multipart/form-data",
-      formData, ajaxOpts, featureFileList, featureFormData;
+      formData, ajaxOpts, featureFileList, featureFormData,
+      form_id = $form.attr('id');
 
     if (modalFileUpload) {
       featureFileList = $("<input type='file'/>").get(0).files !== undefined;
@@ -205,9 +206,9 @@ horizon.addInitFunction(horizon.modals.init = function() {
         // modal forms won't work in them (namely, IE9).
         return;
       } else {	
-	    if (!update_field_id) {
-	    	$('.dynamic_listbox option').prop('selected', true);
-	    }
+      if (!update_field_id) {
+        $('.dynamic_listbox option').prop('selected', true);
+      }
         formData = new window.FormData(form);
       }
     } else {
@@ -223,6 +224,9 @@ horizon.addInitFunction(horizon.modals.init = function() {
 	    if (edit_option_index) {
 	      headers["X-Horizon-Edit-Option-Index"] = edit_option_index;
 	    }
+    }
+    if (form_id == 'save_template') {
+      formData.append('canvas_data', cs_get_canvas_data());
     }
 
     ajaxOpts = {
@@ -252,30 +256,31 @@ horizon.addInitFunction(horizon.modals.init = function() {
           $('.ajax-modal, .dropdown-toggle').removeAttr("disabled");
         }
         $form.closest(".modal").modal("hide");
-        if (redirect_header) {
+        if (form_id == 'modify_resource') {
+          cs_addResource(data);
+        } else if (redirect_header) {
           location.href = redirect_header;
-        }
-        else if (add_to_field_header) {
+        } else if (add_to_field_header) {
           json_data = $.parseJSON(data);
-	      field_to_update = $("#" + add_to_field_header);
-	      if (field_to_update.hasClass('dynamic_listbox')) {
-	          if (edit_option_index_header) {
-	            $(field_to_update.children()[edit_option_index_header]).after("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
-	            $(field_to_update.children()[edit_option_index_header]).remove();
-			    field_to_update.change();
-			    field_to_update.val('');
-	            $(field_to_update.children()[edit_option_index_header]).prop('selected', true);
-	          } else {
-		        field_to_update.append("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
-			    field_to_update.change();
-			    field_to_update.val('');
-			    $(field_to_update.children(':last')).prop('selected', true);
-		      }
-	      } else {
-	        field_to_update.append("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
-		    field_to_update.change();
-		    field_to_update.val(json_data[0]);
-	      }
+          field_to_update = $("#" + add_to_field_header);
+          if (field_to_update.hasClass('dynamic_listbox')) {
+            if (edit_option_index_header) {
+              $(field_to_update.children()[edit_option_index_header]).after("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
+              $(field_to_update.children()[edit_option_index_header]).remove();
+              field_to_update.change();
+              field_to_update.val('');
+              $(field_to_update.children()[edit_option_index_header]).prop('selected', true);
+            } else {
+	            field_to_update.append("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
+	            field_to_update.change();
+	            field_to_update.val('');
+	            $(field_to_update.children(':last')).prop('selected', true);
+            }
+	        } else {
+	          field_to_update.append("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
+	          field_to_update.change();
+	          field_to_update.val(json_data[0]);
+	        }
         } else {
           horizon.modals.success(data, textStatus, jqXHR);
         }
@@ -295,6 +300,7 @@ horizon.addInitFunction(horizon.modals.init = function() {
       ajaxOpts.contentType = false;  // tell jQuery not to process the data
       ajaxOpts.processData = false;  // tell jQuery not to set contentType
     }
+
     $.ajax(ajaxOpts);
   });
 

@@ -125,7 +125,6 @@ class OwnerFilter(tables.FixedFilterAction):
 #         return tenants
 
 def get_template_name(image):
-    print 'get name of image:', image
     return getattr(image, "name", None) or image['name']
  
 def get_template_type(image):
@@ -154,8 +153,7 @@ class UpdateRow(tables.Row):
     ajax = True
 
     def get_data(self, request, image_id):
-        print 'id:', image_id
-# 
+        pass
 #     def load_cells(self, image=None):
 #         super(UpdateRow, self).load_cells(image)
         # Tag the row with the image category for client-side filtering.

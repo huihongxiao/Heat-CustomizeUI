@@ -98,15 +98,12 @@ class SelectResourceForm(forms.SelfHandlingForm):
 
         return self.next_view.as_view()(request, **kwargs)
 
-
 class ModifyResourceForm(forms.SelfHandlingForm):
     param_prefix = ''
-
     parameters = forms.CharField(
         widget=forms.widgets.HiddenInput)
     resource_type = forms.CharField(
         widget=forms.widgets.HiddenInput)
-
     resource_name = forms.RegexField(
         max_length=255,
         label=_('Resource Name'),
@@ -118,7 +115,6 @@ class ModifyResourceForm(forms.SelfHandlingForm):
                           'periods and hyphens.')})
     depends_on = forms.ChoiceField(label=_('Select the resource to depend on'),
                      required=False)
-
     origin_resource = None
 
     class Meta(object):
@@ -181,18 +177,8 @@ class ModifyResourceForm(forms.SelfHandlingForm):
     
     def handle(self, request, data, **kwargs):
         data.pop('parameters')
-        LOG.info('Finalized Resource Parameters %s' % data)
         res_data = self.res_cls.generate_res_data(data)
-        if self.origin_resource:
-            project_api.modify_resource_in_draft(self.request, res_data, self.origin_resource['resource_name'])
-        else:
-            project_api.add_resource_to_draft(self.request, res_data)
-        # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
-        # request so that we can chain it as an input to the next view...
-        # but hey, it totally works.
-#        request.method = 'GET'
-#        return self.next_view.as_view()(request, resource_details = data)
-        return True
+        return json.dumps(project_api.gen_resource_d3_data(res_data))
 
 class LaunchStackForm(forms.SelfHandlingForm):
     stack_name = forms.RegexField(
@@ -235,8 +221,24 @@ class SaveForm(forms.SelfHandlingForm):
     class Meta(object):
         name = _('Save Template')
 
+    def clean(self, **kwargs):
+        data = super(SaveForm, self).clean()
+        existing_names = project_api.get_resource_names(self.request)
+        if 'resource_name' in data:
+            if self.origin_resource :
+                for name in existing_names:
+                    if data['resource_name'] == name and name != self.origin_resource['resource_name']:
+                        raise ValidationError(
+                            _("There is already a resource with the same name.")) 
+            else :
+                for name in existing_names:
+                    if data['resource_name'] == name:
+                        raise ValidationError(
+                            _("There is already a resource with the same name.")) 
+        return data
+
     def handle(self, request, data):
-        project_api.save_template(request.user.id, data.get('template_name'))
+        project_api.save_template(request.user.id, data.get('template_name'), self.data['canvas_data'])
         return True
 
 class ClearCanvasForm(forms.SelfHandlingForm):

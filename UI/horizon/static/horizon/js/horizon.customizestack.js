@@ -21,7 +21,14 @@
  */
 
 var cs_container = "#heat_topology";
-var node_selected = false;
+
+function cs_get_canvas_data() {
+  var resources = [];
+  $.each(nodes, function(i, node) {
+    resources.push(node.details);
+  });
+  return(JSON.stringify(resources));
+}
 
 function del_items(name) {
   var id; 
@@ -162,7 +169,14 @@ function findNodeIndex(name) {
   }
 }
 
-function addNode (node) {
+function cs_addResource(resource) {
+  var toAdd = $.parseJSON(resource);
+  cs_addNode(toAdd);
+  cs_build_links();
+  cs_update();
+}
+
+function cs_addNode (node) {
   nodes.push(node);
   needs_update = true;
 }
@@ -197,7 +211,7 @@ function remove_nodes(old_nodes, new_nodes){
   }
 }
 
-function build_links(){
+function cs_build_links(){
   for (var i=0;i<nodes.length;i++){
     build_node_links(nodes[i]);
     build_reverse_links(nodes[i]);
@@ -267,14 +281,13 @@ if ($(cs_container).length){
     if (height < 500){
       height = 500;
     }
-    ajax_url = '/project/customize_stack/get_draft_template_data',
+    ajax_url,
     graph,
     template_name = $(cs_container).attr('name');
   $('#opt_bar').hide();
   if (template_name) {
     ajax_url = '/project/customize_stack/get_template_data/' + template_name + '/';
-  }
-  $.ajax({  
+    $.ajax({
       url: ajax_url,  
       type: 'GET',  
       dataType: 'json',  
@@ -282,7 +295,12 @@ if ($(cs_container).length){
       success: function(json) {
         graph = json;
       }
-    });  
+    });
+  } else {
+    graph = {
+      'nodes': []
+    }
+  }
   var force = d3.layout.force()
       .nodes(graph.nodes)
       .links([])
@@ -303,7 +321,8 @@ if ($(cs_container).length){
     link = group.selectAll(".link"),
     needs_update = false,
     nodes = force.nodes(),
-    links = force.links();
+    links = force.links(),
+    node_selected = false;
     
   svg.on("click", function() {
     node_selected = false;
@@ -313,7 +332,7 @@ if ($(cs_container).length){
     $('#detail_box').perfectScrollbar('destroy');
   });
 
-  build_links();
+  cs_build_links();
   cs_update();
   
   //resize the canvas when the window is resized.

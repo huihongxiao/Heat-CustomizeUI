@@ -5,6 +5,7 @@ import six
 
 import yaml
 
+from django import http
 from django.core.urlresolvers import reverse
 from django.core.urlresolvers import reverse_lazy
 from django.http import HttpResponse  # noqa
@@ -117,6 +118,18 @@ class ModifyResourceView(forms.ModalFormView):
         else:
             kwargs['parameters'] = self.kwargs
         return kwargs
+
+    def form_valid(self, form):
+        try:
+            handled = form.handle(self.request, form.cleaned_data)
+        except Exception:
+            handled = None
+            exceptions.handle(self.request)
+        if handled:
+            response = http.HttpResponse(handled)
+            return response
+        else:
+            return self.form_invalid(form)
    
 class PreviewResourceDetailsView(forms.ModalFormMixin, views.HorizonTemplateView):
     template_name = 'project/customize_stack/preview_details.html'
