@@ -263,19 +263,23 @@ function zoomed() {
 
 if ($(cs_container).length){
   var width = $(cs_container).width(),
-  height = window.innerHeight - 230;
-  if (height < 500){
-    height = 500;
-  }
+    height = window.innerHeight - 230;
+    if (height < 500){
+      height = 500;
+    }
     ajax_url = '/project/customize_stack/get_draft_template_data',
-    graph;
+    graph,
+    template_name = $(cs_container).attr('name');
   $('#opt_bar').hide();
+  if (template_name) {
+    ajax_url = '/project/customize_stack/get_template_data/' + template_name + '/';
+  }
   $.ajax({  
-        url: ajax_url,  
-        type: 'GET',  
-        dataType: 'json',  
-        async: false,  
-        success: function(json) {
+      url: ajax_url,  
+      type: 'GET',  
+      dataType: 'json',  
+      async: false,  
+      success: function(json) {
         graph = json;
       }
     });  

@@ -165,7 +165,6 @@ class ModifyResourceForm(forms.SelfHandlingForm):
     
     def clean(self, **kwargs):
         data = super(ModifyResourceForm, self).clean()
-
         existing_names = project_api.get_resource_names(self.request)
         if 'resource_name' in data:
             if self.origin_resource :
@@ -179,7 +178,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
                         raise ValidationError(
                             _("There is already a resource with the same name.")) 
         return data
-
+    
     def handle(self, request, data, **kwargs):
         data.pop('parameters')
         LOG.info('Finalized Resource Parameters %s' % data)
@@ -194,7 +193,6 @@ class ModifyResourceForm(forms.SelfHandlingForm):
 #        request.method = 'GET'
 #        return self.next_view.as_view()(request, resource_details = data)
         return True
-
 
 class LaunchStackForm(forms.SelfHandlingForm):
     stack_name = forms.RegexField(
@@ -217,11 +215,28 @@ class LaunchStackForm(forms.SelfHandlingForm):
         required=False)
 
     class Meta(object):
-        name = _('Modify Resource Properties')
-
+        name = _('Launch Stack')
 
     def handle(self, request, data):
         project_api.launch_stack(request, data.get('stack_name'), data.get('enable_rollback'), data.get('timeout_mins'))
+        return True
+
+class SaveForm(forms.SelfHandlingForm):
+    template_name = forms.RegexField(
+        max_length=255,
+        label=_('Template Name'),
+        help_text=_('Name of the template to save as.'),
+        regex=r"^[a-zA-Z][a-zA-Z0-9_.-]*$",
+        error_messages={'invalid':
+                        _('Name must start with a letter and may '
+                          'only contain letters, numbers, underscores, '
+                          'periods and hyphens.')})
+
+    class Meta(object):
+        name = _('Save Template')
+
+    def handle(self, request, data):
+        project_api.save_template(request.user.id, data.get('template_name'))
         return True
 
 class ClearCanvasForm(forms.SelfHandlingForm):

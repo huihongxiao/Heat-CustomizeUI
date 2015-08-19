@@ -25,23 +25,59 @@ from openstack_dashboard.dashboards.project.customize_stack \
     import api as project_api
 from openstack_dashboard.dashboards.project.customize_stack \
     import tabs as project_tabs
+from openstack_dashboard.dashboards.project.customize_stack \
+    import tables as project_tables
 
 
 LOG = logging.getLogger(__name__)
 
-class IndexView(tabs.TabView):
-    redirect_url = 'horizon:project:customize_stack:index'
+class TableView(tables.DataTableView):
+    table_class = project_tables.TemplatesTable
+    template_name = 'project/customize_stack/table.html'
+    page_title = _("Templates")
+
+    def has_prev_data(self, table):
+        return getattr(self, "_prev_%s" % table.name, False)
+
+    def has_more_data(self, table):
+        return getattr(self, "_more_%s" % table.name, False)
+
+    def get_data(self):
+        marker = self.request.GET.get(
+            project_tables.TemplatesTable._meta.pagination_param, None)
+        try:
+            templates = project_api.get_templates()
+        except Exception:
+            templates = []
+            exceptions.handle(self.request, _("Unable to retrieve templates."))
+        return templates
+
+class CreateTemplateView(tabs.TabView):
     tab_group_class = project_tabs.CustomizeStackTabs
     template_name = 'project/customize_stack/tabs_group.html'
-    page_title = _("Customize stacks")
-
-    def get_context_data(self, **kwargs):
-        context = super(IndexView, self).get_context_data(**kwargs)
-        return context
+    page_title = _("Create template")
 
     def get_tabs(self, request, *args, **kwargs):
         return project_tabs.CustomizeStackTabs(request, **kwargs)
+
+    @staticmethod
+    def get_redirect_url():
+        return reverse('horizon:project:customize_stack:create_template')
+
+class EditTemplateView(CreateTemplateView):
+    page_title = _("Edit template: {{ template_name }}")
+
+    def get_context_data(self, **kwargs):
+        context = super(EditTemplateView, self).get_context_data(**kwargs)
+        context["template_name"] = kwargs['template_name']
+        return context
+
+    def get_tabs(self, request, *args, **kwargs):
+        return project_tabs.CustomizeStackTabs(request, name=self.kwargs['template_name'], **kwargs)
     
+    @staticmethod
+    def get_redirect_url():
+        return reverse('horizon:project:customize_stack:edit_template')
 
 class SelectResourceView(forms.ModalFormView):
     template_name = 'project/customize_stack/select.html'
@@ -111,6 +147,16 @@ class LaunchStackView(forms.ModalFormView):
     success_url = reverse_lazy('horizon:project:stacks:index')
     page_title = _("Launch Stack")
 
+class SaveView(forms.ModalFormView):
+    template_name = 'project/customize_stack/save.html'
+    modal_header = _("Save Template")
+    form_id = "save_template"
+    form_class = project_forms.SaveForm
+    submit_label = _("Save")
+    submit_url = reverse_lazy("horizon:project:customize_stack:save")
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Save Template")
+
 class ClearCanvasView(forms.ModalFormView):
     template_name = 'project/customize_stack/clear.html'
     modal_header = _("Clear Canvas")
@@ -122,8 +168,21 @@ class ClearCanvasView(forms.ModalFormView):
     page_title = _("Clear Canvas")
 
 class JSONView(django.views.generic.View):
+    template_name = None
     def get(self, request):
-        return HttpResponse(project_api.get_draft_template(request), content_type="application/json")
+        if self.template_name is not None:
+            return HttpResponse(project_api.get_draft_template(request, self.kwargs['template_name']), content_type="application/json")
+        else:
+            return HttpResponse(project_api.get_draft_template(request), content_type="application/json")
+    
+    def dispatch(self, request, *args, **kwargs):
+        if request.method.lower() in self.http_method_names:
+            handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
+        else:
+            handler = self.http_method_not_allowed
+        if 'template_name' in self.kwargs:
+            self.template_name = kwargs.pop('template_name')
+        return handler(request, *args, **kwargs)
 
 class DeleteResourceView(forms.ModalFormView):
     template_name = 'project/customize_stack/delete.html'

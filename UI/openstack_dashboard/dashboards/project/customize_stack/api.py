@@ -18,6 +18,7 @@ from horizon import messages
 
 # file_path = "/etc/openstack-dashboard/cstack.data"
 file_path = "/tmp/heat/%(user)s"
+
 LOG = logging.getLogger(__name__)
 # mutex = threading.Lock()
 
@@ -43,6 +44,31 @@ class Mutex(object):
 
 mutex = Mutex()
 
+def get_templates():
+    templates = []
+    dirname = '/tmp/heat/templates'
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    names = os.listdir(dirname)
+    for name in names:
+        template = {
+            'name': name
+        }
+        templates.append(template)
+    return templates;
+
+def save_template(user, template_name):
+    dirname = '/tmp/heat/templates'
+    file_name = os.path.join(dirname, template_name)
+    resources = _get_resources_from_file(user, None)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    if mutex.acquire(user):
+        f = open(file_name, 'wb')
+        pickle.dump(resources, f)
+        f.close()
+        mutex.release(user)
+
 def clean_template_folder(user, only_template=False):
     dirname = file_path % {'user': user}
     file_name = os.path.join(dirname, 'cstack.data')
@@ -59,9 +85,13 @@ def clean_template_folder(user, only_template=False):
             f.close()
             mutex.release(user)
 
-def _get_resources_from_file(user):
-    dirname = file_path % {'user': user}
-    file_name = os.path.join(dirname, 'cstack.data')
+def _get_resources_from_file(user, template_name=None):
+    if template_name is not None:
+        dirname = '/tmp/heat/templates'
+        file_name = os.path.join(dirname, template_name)
+    else:
+        dirname = file_path % {'user': user}
+        file_name = os.path.join(dirname, 'cstack.data')
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     if os.path.isfile(file_name):
@@ -72,7 +102,7 @@ def _get_resources_from_file(user):
             f.close()
             mutex.release(user)
     else:
-        LOG.info('Could not find draft template file %s' % file_path)
+        LOG.info('Could not find draft template file %s' % file_name)
         resources = []
     return resources
 
@@ -103,15 +133,15 @@ def save_user_file(user, file):
         mutex.release(user)
     return file_name
 
-def get_resource_names(request):
+def get_resource_names(request, template_name=None):
     resource_names = []
-    resources = _get_resources_from_file(request.user.id)
+    resources = _get_resources_from_file(request.user.id, template_name)
     for resource in resources:
         resource_names.append(resource['resource_name'])
     return resource_names
 
-def get_draft_template(request):
-    resources = _get_resources_from_file(request.user.id)
+def get_draft_template(request, template_name=None):
+    resources = _get_resources_from_file(request.user.id, template_name)
     d3_data = {"nodes": []}
 
     if resources:
@@ -241,8 +271,8 @@ def _generate_template(resources):
 
     return json.loads(json.dumps(template))
 
-def get_template_content(request):
-    resources = _get_resources_from_file(request.user.id)
+def get_template_content(request, template_name=None):
+    resources = _get_resources_from_file(request.user.id, template_name)
     template = _generate_template(resources)
     return json.dumps(template, indent=4)
     
