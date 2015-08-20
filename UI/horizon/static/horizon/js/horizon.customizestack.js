@@ -22,6 +22,26 @@
 
 var cs_container = "#heat_topology";
 
+$(document).on('click', '.cs-simple-btn', function (evt) {
+  var $this = $(this);
+  $this.blur();
+});
+
+function cs_clear() {
+  var names = [], index = 0, id;
+  for (var node in nodes) {
+    names.push(node.name);
+  }
+  id = window.setInterval(function() {
+    cs_removeNode(names[index]);
+    cs_update();
+    index ++;
+    if (index == names.length) {
+      window.clearInterval(id);
+    }
+  }, 100);
+}
+
 function cs_get_canvas_data() {
   var resources = [];
   $.each(nodes, function(i, node) {
@@ -181,7 +201,7 @@ function cs_addNode (node) {
   needs_update = true;
 }
 
-function removeNode (name) {
+function cs_removeNode (name) {
   var i = 0;
   var n = findNode(name);
   while (i < links.length) {

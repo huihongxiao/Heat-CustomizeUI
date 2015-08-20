@@ -14,7 +14,9 @@ from horizon.utils.memoized import memoized  # noqa
 from openstack_dashboard import api
 from openstack_dashboard.api import base
  
- 
+from openstack_dashboard.dashboards.project.customize_stack \
+    import api as project_api
+
 class CreateTemplate(tables.LinkAction):
     name = "create"
     verbose_name = _("Create Template")
@@ -98,7 +100,7 @@ class DeleteTemplate(tables.DeleteAction):
         return True
 
     def delete(self, request, obj_id):
-        api.glance.image_delete(request, obj_id)
+        project_api.delete_template(request, obj_id)
 
 class OwnerFilter(tables.FixedFilterAction):
     def get_fixed_buttons(self):

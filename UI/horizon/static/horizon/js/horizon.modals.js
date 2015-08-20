@@ -225,7 +225,7 @@ horizon.addInitFunction(horizon.modals.init = function() {
 	      headers["X-Horizon-Edit-Option-Index"] = edit_option_index;
 	    }
     }
-    if (form_id == 'save_template') {
+    if (form_id.substring(0,10)=='heat_save_') {
       formData.append('canvas_data', cs_get_canvas_data());
     }
 

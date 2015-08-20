@@ -160,15 +160,46 @@ class LaunchStackView(forms.ModalFormView):
     success_url = reverse_lazy('horizon:project:stacks:index')
     page_title = _("Launch Stack")
 
-class SaveView(forms.ModalFormView):
+class SaveDraftView(forms.ModalFormView):
     template_name = 'project/customize_stack/save.html'
     modal_header = _("Save Template")
-    form_id = "save_template"
-    form_class = project_forms.SaveForm
+    form_id = "heat_save_draft"
+    form_class = project_forms.SaveDraftForm
     submit_label = _("Save")
-    submit_url = reverse_lazy("horizon:project:customize_stack:save")
+    submit_url = reverse_lazy("horizon:project:customize_stack:save_draft")
     success_url = reverse_lazy('horizon:project:customize_stack:index')
     page_title = _("Save Template")
+
+class SaveTemplateView(forms.ModalFormView):
+    template_name = 'project/customize_stack/save_confirmation.html'
+    modal_header = _("Save Template")
+    form_id = "heat_save_template"
+    form_class = project_forms.SaveTemplateForm
+    submit_label = _("Save")
+    submit_url = "horizon:project:customize_stack:save_template"
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Save Template")
+    
+    def get_context_data(self, **kwargs):
+        context = super(SaveTemplateView, self).get_context_data(**kwargs)
+        args = (self.kwargs['template_name'],)
+        context['submit_url'] = reverse(self.submit_url, args=args)
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super(SaveTemplateView, self).get_form_kwargs()
+        kwargs['template_name'] = self.kwargs['template_name']
+        return kwargs
+
+class SaveTemplateAsView(forms.ModalFormView):
+    template_name = 'project/customize_stack/save_as.html'
+    modal_header = _("Save Template As")
+    form_id = "heat_save_template_as"
+    form_class = project_forms.SaveTemplateAsForm
+    submit_label = _("Save")
+    submit_url = reverse_lazy("horizon:project:customize_stack:save_template_as")
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Save Template As")
 
 class ClearCanvasView(forms.ModalFormView):
     template_name = 'project/customize_stack/clear.html'
@@ -206,7 +237,6 @@ class DeleteResourceView(forms.ModalFormView):
     submit_url = "horizon:project:customize_stack:delete_resource"
     success_url = reverse_lazy('horizon:project:customize_stack:index')
     page_title = _("Delete Resource")
-
 
     def get_context_data(self, **kwargs):
         context = super(DeleteResourceView, self).get_context_data(**kwargs)

@@ -15,9 +15,11 @@ from django.utils.translation import ugettext_lazy as _
 from horizon import exceptions
 from horizon import messages
 
+from django.forms import ValidationError  # noqa
 
 # file_path = "/etc/openstack-dashboard/cstack.data"
 file_path = "/tmp/heat/%(user)s"
+dirname = '/tmp/heat/templates'
 
 LOG = logging.getLogger(__name__)
 # mutex = threading.Lock()
@@ -44,6 +46,12 @@ class Mutex(object):
 
 mutex = Mutex()
 
+def validate_template_name(value):
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    if value in os.listdir(dirname):
+        raise ValidationError('A template named as %s already exists.' % value)
+    
 def get_templates():
     templates = []
     dirname = '/tmp/heat/templates'
@@ -58,7 +66,6 @@ def get_templates():
     return templates;
 
 def save_template(user, template_name, canvas_data):
-    dirname = '/tmp/heat/templates'
     file_name = os.path.join(dirname, template_name)
     resources = json.loads(canvas_data)
     if not os.path.exists(dirname):
@@ -67,6 +74,12 @@ def save_template(user, template_name, canvas_data):
         f = open(file_name, 'wb')
         pickle.dump(resources, f)
         f.close()
+        mutex.release(user)
+
+def delete_template(user, template_name):
+    file_name = os.path.join(dirname, template_name)
+    if mutex.acquire(user):
+        os.remove(file_name)
         mutex.release(user)
 
 def clean_template_folder(user, only_template=False):
