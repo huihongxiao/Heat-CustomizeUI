@@ -201,15 +201,15 @@ class SaveTemplateAsView(forms.ModalFormView):
     success_url = reverse_lazy('horizon:project:customize_stack:index')
     page_title = _("Save Template As")
 
-class ClearCanvasView(forms.ModalFormView):
-    template_name = 'project/customize_stack/clear.html'
-    modal_header = _("Clear Canvas")
-    form_id = "clear_canvas"
-    form_class = project_forms.ClearCanvasForm
-    submit_label = _("Confirm")
-    submit_url = reverse_lazy("horizon:project:customize_stack:clear_canvas")
-    success_url = reverse_lazy('horizon:project:customize_stack:index')
-    page_title = _("Clear Canvas")
+# class ClearCanvasView(forms.ModalFormView):
+#     template_name = 'project/customize_stack/clear.html'
+#     modal_header = _("Clear Canvas")
+#     form_id = "clear_canvas"
+#     form_class = project_forms.ClearCanvasForm
+#     submit_label = _("Confirm")
+#     submit_url = reverse_lazy("horizon:project:customize_stack:clear_canvas")
+#     success_url = reverse_lazy('horizon:project:customize_stack:index')
+#     page_title = _("Clear Canvas")
 
 class JSONView(django.views.generic.View):
     template_name = None
@@ -228,27 +228,26 @@ class JSONView(django.views.generic.View):
             self.template_name = kwargs.pop('template_name')
         return handler(request, *args, **kwargs)
 
-class DeleteResourceView(forms.ModalFormView):
-    template_name = 'project/customize_stack/delete.html'
-    modal_header = _("Delete Resource")
-    form_id = "delete_resource"
-    form_class = project_forms.DeleteResourceForm
-    submit_label = _("Confirm")
-    submit_url = "horizon:project:customize_stack:delete_resource"
-    success_url = reverse_lazy('horizon:project:customize_stack:index')
-    page_title = _("Delete Resource")
-
-    def get_context_data(self, **kwargs):
-        context = super(DeleteResourceView, self).get_context_data(**kwargs)
-        args = (self.kwargs['resource_name'],)
-        context['submit_url'] = reverse(self.submit_url, args=args)
-        return context
-
-    def get_form_kwargs(self):
-        kwargs = super(DeleteResourceView, self).get_form_kwargs()
-        kwargs['resource_name'] = self.kwargs['resource_name']
-        return kwargs
-    
+# class DeleteResourceView(forms.ModalFormView):
+#     template_name = 'project/customize_stack/delete.html'
+#     modal_header = _("Delete Resource")
+#     form_id = "delete_resource"
+#     form_class = project_forms.DeleteResourceForm
+#     submit_label = _("Confirm")
+#     submit_url = "horizon:project:customize_stack:delete_resource"
+#     success_url = reverse_lazy('horizon:project:customize_stack:index')
+#     page_title = _("Delete Resource")
+# 
+#     def get_context_data(self, **kwargs):
+#         context = super(DeleteResourceView, self).get_context_data(**kwargs)
+#         args = (self.kwargs['resource_name'],)
+#         context['submit_url'] = reverse(self.submit_url, args=args)
+#         return context
+# 
+#     def get_form_kwargs(self):
+#         kwargs = super(DeleteResourceView, self).get_form_kwargs()
+#         kwargs['resource_name'] = self.kwargs['resource_name']
+#         return kwargs
 
 class EditResourceView(forms.ModalFormView):
     template_name = 'project/customize_stack/modify.html'
@@ -262,11 +261,11 @@ class EditResourceView(forms.ModalFormView):
     
     def get_context_data(self, **kwargs):
         context = super(EditResourceView, self).get_context_data(**kwargs)
-        args = (self.kwargs['resource_name'],)
+        args = (self.kwargs['resource_type'],)
         context['submit_url'] = reverse(self.submit_url, args=args)
         return context
 
-    def _get_resource_type(self, request, resource_type):
+    def _get_resource_properties(self, request, resource_type):
         resource_properties = {}
         try:
             # resource = api.heat.resource_type_generate_template(request, resource_type)
@@ -278,23 +277,23 @@ class EditResourceView(forms.ModalFormView):
             exceptions.handle(request, msg)
         return resource_properties
 
-    def _get_resource(self, resource_name):
-#         resource_properties = {}
-        resource = project_api.get_resourse_info(self.request, resource_name)
-        return resource
+#     def _get_resource(self, resource_name):
+# #         resource_properties = {}
+#         resource = project_api.get_resourse_info(self.request, resource_name)
+#         return resource
     
     def get_initial(self):
         initial = {}
-        resource = self._get_resource(self.kwargs['resource_name'])
-        kwargs = self._get_resource_type(self.request, resource['resource_type'])
-        kwargs['resource_type'] = resource['resource_type']
+#         resource = self._get_resource(self.kwargs['resource_name'])
+        kwargs = self._get_resource_properties(self.request, self.kwargs['resource_type'])
+        kwargs['resource_type'] = self.kwargs['resource_type']
         # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
         # request so that we can chain it as an input to the next view...
         # but hey, it totally works.
 #         self.kwargs = kwargs
         
         initial['parameters'] = kwargs
-        initial['resource'] = resource
+#         initial['resource'] = resource
         return initial
 
     def get_form_kwargs(self):
@@ -304,7 +303,7 @@ class EditResourceView(forms.ModalFormView):
             kwargs['parameters'] = json.loads(self.request.POST['parameters'])
         else:
             kwargs['parameters'] = kwargs['initial']['parameters']
-        kwargs['resource'] = kwargs['initial']['resource']
+#         kwargs['resource'] = kwargs['initial']['resource']
         return kwargs
 
 class DynamicListView(forms.ModalFormView):

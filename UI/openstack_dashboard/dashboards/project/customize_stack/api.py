@@ -146,12 +146,12 @@ def save_user_file(user, file):
         mutex.release(user)
     return file_name
 
-def get_resource_names(request, template_name=None):
-    resource_names = []
-    resources = _get_resources_from_file(request.user.id, template_name)
-    for resource in resources:
-        resource_names.append(resource['resource_name'])
-    return resource_names
+# def get_resource_names(request, template_name=None):
+#     resource_names = []
+#     resources = _get_resources_from_file(request.user.id, template_name)
+#     for resource in resources:
+#         resource_names.append(resource['resource_name'])
+#     return resource_names
 
 def get_draft_template(request, template_name=None):
     resources = _get_resources_from_file(request.user.id, template_name)
@@ -218,30 +218,30 @@ def gen_resource_d3_data(resource_folk):
 #         f.close()
 #         mutex.release(request.user.id)
 
-def del_resource_from_draft(request, resource_name):
-    dirname = file_path % {'user': request.user.id}
-    file_name = os.path.join(dirname, 'cstack.data')
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    resources = _get_resources_from_file(request.user.id)
-    for idx, resource in enumerate(resources):
-        if resource['resource_name'] == resource_name:
-            resources.pop(idx)
-            break
-    del_dependencies(resources, resource_name)
-    if mutex.acquire(request.user.id):
-        f = open(file_name, 'wb')
-        pickle.dump(resources, f)
-        f.close()
-        mutex.release(request.user.id)
+# def del_resource_from_draft(request, resource_name):
+#     dirname = file_path % {'user': request.user.id}
+#     file_name = os.path.join(dirname, 'cstack.data')
+#     if not os.path.exists(dirname):
+#         os.makedirs(dirname)
+#     resources = _get_resources_from_file(request.user.id)
+#     for idx, resource in enumerate(resources):
+#         if resource['resource_name'] == resource_name:
+#             resources.pop(idx)
+#             break
+#     del_dependencies(resources, resource_name)
+#     if mutex.acquire(request.user.id):
+#         f = open(file_name, 'wb')
+#         pickle.dump(resources, f)
+#         f.close()
+#         mutex.release(request.user.id)
 
-def get_resourse_info(request, resource_name):
-    resources = _get_resources_from_file(request.user.id)
-
-    if resources:
-        for resource_folk in resources:
-            if resource_name == resource_folk['resource_name']:
-                return resource_folk
+# def get_resourse_info(request, resource_name):
+#     resources = _get_resources_from_file(request.user.id)
+# 
+#     if resources:
+#         for resource_folk in resources:
+#             if resource_name == resource_folk['resource_name']:
+#                 return resource_folk
 # 
 # def modify_resource_in_draft(request, modified, origin_name):
 #     dirname = file_path % {'user': request.user.id}

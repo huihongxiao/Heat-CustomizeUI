@@ -29,11 +29,12 @@ $(document).on('click', '.cs-simple-btn', function (evt) {
 
 function cs_clear() {
   var names = [], index = 0, id;
-  for (var node in nodes) {
+  $.each(nodes, function(i, node) {
     names.push(node.name);
-  }
+  });
   id = window.setInterval(function() {
     cs_removeNode(names[index]);
+    cs_build_links;
     cs_update();
     index ++;
     if (index == names.length) {
@@ -121,13 +122,24 @@ function cs_update(){
   });
   node.on("click", function(d) {
     $('#detail_box').perfectScrollbar('destroy');
-    icon = $('<img/>');
-    icon.attr('src', d.image);
-    $('#node_icon').html(icon);
+//    icon = $('<img/>');
+//    icon.attr('src', d.image);
+//    $('#node_icon').html(icon);
     showDetails(d.details);
     $('#opt_bar').show();
-    $('#cus_stack_action_delete').attr('href',"/project/customize_stack/delete_resource/" + d.name + "/");
-    $('#cus_stack_action_edit').attr('href',"/project/customize_stack/edit_resource/" + d.name + "/");
+//    $('#cus_stack_action_delete').attr('href',"/project/customize_stack/delete_resource/" + d.name + "/");
+    $('#cus_stack_action_delete').click(function() {
+      cs_removeNode(d.name);
+      cs_build_links;
+      cs_update();
+      node_selected = false;
+      $("#node_icon").html('');
+      $("#node_info").html('');
+      $('#opt_bar').hide();
+      $('#detail_box').perfectScrollbar('destroy');
+    })
+    $('#cus_stack_action_edit').attr('href',"/project/customize_stack/edit_resource/"
+      + encodeURIComponent(d.details.resource_type) + "/");
     $('#detail_box').perfectScrollbar();
     node_selected = true;
     d3.event.stopPropagation()
@@ -295,6 +307,25 @@ function zoomed() {
     }
 } 
 
+var form_init = function(modal) {
+  var form = $(modal).find('form'),
+    dependancy = form.find('#id_depends_on'),
+    option;
+  if (form.attr('id') == 'modify_resource') {
+    if (dependancy) {
+      $.each(nodes, function(i, node) {
+        option = $('<option></option>')
+        option.html(node.name);
+        option.attr('value', node.name);
+        dependancy.append(option);
+        dependancy.val('');
+      });
+    }
+  } else if (form.attr('id') == 'edit_resource') {
+    console.info('edit');
+  }
+}
+
 if ($(cs_container).length){
   var width = $(cs_container).width(),
     height = window.innerHeight - 230;
@@ -368,4 +399,5 @@ if ($(cs_container).length){
     force.resume();
     $('#detail_box').perfectScrollbar('update');
   });
+  horizon.modals.addModalInitFunction(form_init);
 }

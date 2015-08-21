@@ -115,65 +115,65 @@ class ModifyResourceForm(forms.SelfHandlingForm):
                           'periods and hyphens.')})
     depends_on = forms.ChoiceField(label=_('Select the resource to depend on'),
                      required=False)
-    origin_resource = None
+#     origin_resource = None
 
     class Meta(object):
         name = _('Modify Resource Properties')
 
     def __init__(self, *args, **kwargs):
         parameters = kwargs.pop('parameters')
-        resource = None
-        if 'resource' in kwargs:
-            resource = kwargs.pop('resource')
+#         resource = None
+#         if 'resource' in kwargs:
+#             resource = kwargs.pop('resource')
 #        self.next_view = kwargs.pop('next_view')
         super(ModifyResourceForm, self).__init__(*args, **kwargs)
         self.is_multipart = True
-        resource_names = project_api.get_resource_names(self.request)
-        resource_name_choice = [("", "")]
-        for resource_name in resource_names:
-            resource_name_choice.append((resource_name, resource_name))
-        if resource:
-            for idx, choice in enumerate(resource_name_choice):
-                if choice[0] == resource['resource_name']:
-                    resource_name_choice.pop(idx)
-                    break
-            self.fields['depends_on'].initial = resource['depends_on']
-            self.fields['resource_name'].initial = resource['resource_name']
-            self.origin_resource = resource
-        self.fields['depends_on'].choices = (resource_name_choice)
-        LOG.info('Original Resource Parameters %s' % parameters)
+#         resource_names = project_api.get_resource_names(self.request)
+#         resource_name_choice = [("", "")]
+#         for resource_name in resource_names:
+#             resource_name_choice.append((resource_name, resource_name))
+#         if resource:
+#             for idx, choice in enumerate(resource_name_choice):
+#                 if choice[0] == resource['resource_name']:
+#                     resource_name_choice.pop(idx)
+#                     break
+#             self.fields['depends_on'].initial = resource['depends_on']
+#             self.fields['resource_name'].initial = resource['resource_name']
+#             self.origin_resource = resource
+#         self.fields['depends_on'].choices = (resource_name_choice)
+#         LOG.info('Original Resource Parameters %s' % parameters)
         res_type = parameters['resource_type']
         target_cls = resource_type_map.get(res_type, None)
         self.res_cls = target_cls(self.request)
-        self._build_parameter_fields(parameters, resource)
+        self._build_parameter_fields(parameters)
 
-    def _build_parameter_fields(self, params, resource):
-        if resource:
-            for prop_name, prop_data in sorted(params.items()):
-                if (prop_name in resource and
-                        isinstance(params[prop_name], dict)):
-                    params[prop_name]['default'] = resource.get(prop_name)
+    def _build_parameter_fields(self, params):
+#         if resource:
+#             for prop_name, prop_data in sorted(params.items()):
+#                 if (prop_name in resource and
+#                         isinstance(params[prop_name], dict)):
+#                     params[prop_name]['default'] = resource.get(prop_name)
 
         self.fields['resource_type'].initial = params.pop('resource_type')
         fields = self.res_cls.generate_prop_fields(params)
         for key, value in fields.items():
             self.fields[key] = value
     
-    def clean(self, **kwargs):
-        data = super(ModifyResourceForm, self).clean()
-        existing_names = project_api.get_resource_names(self.request)
-        if 'resource_name' in data:
-            if self.origin_resource :
-                for name in existing_names:
-                    if data['resource_name'] == name and name != self.origin_resource['resource_name']:
-                        raise ValidationError(
-                            _("There is already a resource with the same name.")) 
-            else :
-                for name in existing_names:
-                    if data['resource_name'] == name:
-                        raise ValidationError(
-                            _("There is already a resource with the same name.")) 
-        return data
+#     def clean(self, **kwargs):
+#         data = super(ModifyResourceForm, self).clean()
+#         existing_names = project_api.get_resource_names(self.request)
+#         if 'resource_name' in data:
+#             if self.origin_resource :
+#                 for name in existing_names:
+#                     if data['resource_name'] == name and name != self.origin_resource['resource_name']:
+#                         raise ValidationError(
+#                             _("There is already a resource with the same name.")) 
+#             else :
+#                 for name in existing_names:
+#                     if data['resource_name'] == name:
+#                         raise ValidationError(
+#                             _("There is already a resource with the same name.")) 
+#         return data
     
     def handle(self, request, data, **kwargs):
         data.pop('parameters')
@@ -257,25 +257,25 @@ class SaveTemplateAsForm(forms.SelfHandlingForm):
         project_api.save_template(request.user.id, data.get('template_name'), self.data['canvas_data'])
         return True
 
-class ClearCanvasForm(forms.SelfHandlingForm):
-    class Meta(object):
-        name = _('Clear the canvas')
+# class ClearCanvasForm(forms.SelfHandlingForm):
+#     class Meta(object):
+#         name = _('Clear the canvas')
+# 
+#     def handle(self, request, data):
+#         project_api.clean_template_folder(self.request.user.id, only_template=True)
+#         return True
 
-    def handle(self, request, data):
-        project_api.clean_template_folder(self.request.user.id, only_template=True)
-        return True
-
-class DeleteResourceForm(forms.SelfHandlingForm):
-    class Meta(object):
-        name = _('Modify Resource Properties')
-
-    def __init__(self, *args, **kwargs):
-        self.resource_name = kwargs.pop('resource_name')
-        super(DeleteResourceForm, self).__init__(*args, **kwargs)
-
-    def handle(self, request, data):
-        project_api.del_resource_from_draft(request, self.resource_name)
-        return True
+# class DeleteResourceForm(forms.SelfHandlingForm):
+#     class Meta(object):
+#         name = _('Modify Resource Properties')
+# 
+#     def __init__(self, *args, **kwargs):
+#         self.resource_name = kwargs.pop('resource_name')
+#         super(DeleteResourceForm, self).__init__(*args, **kwargs)
+# 
+#     def handle(self, request, data):
+#         project_api.del_resource_from_draft(request, self.resource_name)
+#         return True
 
 class DynamicListForm(forms.SelfHandlingForm):
     class Meta(object):
