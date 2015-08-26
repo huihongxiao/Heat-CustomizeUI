@@ -127,10 +127,63 @@ class ModifyResourceView(forms.ModalFormView):
             exceptions.handle(self.request)
         if handled:
             response = http.HttpResponse(handled)
+            response['X-Horizon-Valid'] = True;
             return response
         else:
             return self.form_invalid(form)
    
+class EditResourceView(forms.ModalFormView):
+    template_name = 'project/customize_stack/modify.html'
+    modal_header = _("Edit Resource")
+    form_id = "edit_resource"
+    form_class = project_forms.ModifyResourceForm
+    submit_label = _("Confirm")
+    submit_url = "horizon:project:customize_stack:edit_resource"
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    page_title = _("Edit Resource")
+    
+    def get_context_data(self, **kwargs):
+        context = super(EditResourceView, self).get_context_data(**kwargs)
+        args = (self.kwargs['resource_type'],)
+        context['submit_url'] = reverse(self.submit_url, args=args)
+        return context
+
+    def _get_resource_properties(self, request, resource_type):
+        resource_properties = {}
+        try:
+            # resource = api.heat.resource_type_generate_template(request, resource_type)
+            # resource_properties = resource['Parameters']
+            resource = api.heat.resource_type_get(request, resource_type)
+            resource_properties = resource['properties']
+        except Exception:
+            msg = _('Unable to retrieve details of resource type %(rt)s' % {'rt': resource_type})
+            exceptions.handle(request, msg)
+        return resource_properties
+    
+    def get_initial(self):
+        initial = {}
+#         resource = self._get_resource(self.kwargs['resource_name'])
+        kwargs = self._get_resource_properties(self.request, self.kwargs['resource_type'])
+        kwargs['resource_type'] = self.kwargs['resource_type']
+        # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
+        # request so that we can chain it as an input to the next view...
+        # but hey, it totally works.
+#         self.kwargs = kwargs
+        
+        initial['parameters'] = kwargs
+#         initial['resource'] = resource
+        return initial
+
+    def get_form_kwargs(self):
+        kwargs = super(EditResourceView, self).get_form_kwargs()
+#        kwargs['next_view'] = PreviewResourceDetailsView
+        if not self.kwargs:
+            kwargs['parameters'] = json.loads(self.request.POST['parameters'])
+        else:
+            kwargs['parameters'] = kwargs['initial']['parameters']
+#         kwargs['resource'] = kwargs['initial']['resource']
+        return kwargs
+
 class PreviewResourceDetailsView(forms.ModalFormMixin, views.HorizonTemplateView):
     template_name = 'project/customize_stack/preview_details.html'
     page_title = _("Preview Resource Details")
@@ -249,63 +302,6 @@ class JSONView(django.views.generic.View):
 #         kwargs['resource_name'] = self.kwargs['resource_name']
 #         return kwargs
 
-class EditResourceView(forms.ModalFormView):
-    template_name = 'project/customize_stack/modify.html'
-    modal_header = _("Edit Resource")
-    form_id = "edit_resource"
-    form_class = project_forms.ModifyResourceForm
-    submit_label = _("Confirm")
-    submit_url = "horizon:project:customize_stack:edit_resource"
-    success_url = reverse_lazy('horizon:project:customize_stack:index')
-    page_title = _("Edit Resource")
-    
-    def get_context_data(self, **kwargs):
-        context = super(EditResourceView, self).get_context_data(**kwargs)
-        args = (self.kwargs['resource_type'],)
-        context['submit_url'] = reverse(self.submit_url, args=args)
-        return context
-
-    def _get_resource_properties(self, request, resource_type):
-        resource_properties = {}
-        try:
-            # resource = api.heat.resource_type_generate_template(request, resource_type)
-            # resource_properties = resource['Parameters']
-            resource = api.heat.resource_type_get(request, resource_type)
-            resource_properties = resource['properties']
-        except Exception:
-            msg = _('Unable to retrieve details of resource type %(rt)s' % {'rt': resource_type})
-            exceptions.handle(request, msg)
-        return resource_properties
-
-#     def _get_resource(self, resource_name):
-# #         resource_properties = {}
-#         resource = project_api.get_resourse_info(self.request, resource_name)
-#         return resource
-    
-    def get_initial(self):
-        initial = {}
-#         resource = self._get_resource(self.kwargs['resource_name'])
-        kwargs = self._get_resource_properties(self.request, self.kwargs['resource_type'])
-        kwargs['resource_type'] = self.kwargs['resource_type']
-        # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
-        # request so that we can chain it as an input to the next view...
-        # but hey, it totally works.
-#         self.kwargs = kwargs
-        
-        initial['parameters'] = kwargs
-#         initial['resource'] = resource
-        return initial
-
-    def get_form_kwargs(self):
-        kwargs = super(EditResourceView, self).get_form_kwargs()
-#        kwargs['next_view'] = PreviewResourceDetailsView
-        if not self.kwargs:
-            kwargs['parameters'] = json.loads(self.request.POST['parameters'])
-        else:
-            kwargs['parameters'] = kwargs['initial']['parameters']
-#         kwargs['resource'] = kwargs['initial']['resource']
-        return kwargs
-
 class DynamicListView(forms.ModalFormView):
     template_name = 'project/customize_stack/additem.html'
     modal_header = _("Add Item")
@@ -338,8 +334,7 @@ class DynamicListView(forms.ModalFormView):
         """Returns an instance of the form to be used in this view."""
         return form_class(request=self.request, **self.get_form_kwargs())
     
-class EditDynamicListView(forms.ModalFormView):
-    template_name = 'project/customize_stack/additem.html'
+class EditDynamicListView(DynamicListView):
     modal_header = _("Edit Item")
     form_id = "edit_item"
     form_class = project_forms.EditDynamicListForm
@@ -348,29 +343,6 @@ class EditDynamicListView(forms.ModalFormView):
     success_url = reverse_lazy('horizon:project:customize_stack:index')
     page_title = _("Edit Item")
 
-    def get_object_id(self, obj):
-        return obj
-
-    def get_object_display(self, obj):
-        return obj
-
-    def get_context_data(self, **kwargs):
-        context = super(EditDynamicListView, self).get_context_data(**kwargs)
-        args = (self.kwargs['resource_type'], self.kwargs['property'], self.kwargs['value'])
-        context['submit_url'] = reverse(self.submit_url, args=args)
-        return context
-
-    def get_form_kwargs(self):
-        kwargs = super(EditDynamicListView, self).get_form_kwargs()
-        kwargs['resource_type'] = self.kwargs['resource_type']
-        kwargs['property'] = self.kwargs['property']
-        kwargs['value'] = self.kwargs['value']
-        return kwargs
-
-    def get_form(self, form_class):
-        """Returns an instance of the form to be used in this view."""
-        return form_class(request=self.request, **self.get_form_kwargs())
-    
     def form_valid(self, form):
         response = super(EditDynamicListView, self).form_valid(form)
         

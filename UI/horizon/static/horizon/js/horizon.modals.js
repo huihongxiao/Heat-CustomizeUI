@@ -221,9 +221,9 @@ horizon.addInitFunction(horizon.modals.init = function() {
 
     if (update_field_id) {
       headers["X-Horizon-Add-To-Field"] = update_field_id;     
-	    if (edit_option_index) {
-	      headers["X-Horizon-Edit-Option-Index"] = edit_option_index;
-	    }
+      if (edit_option_index) {
+        headers["X-Horizon-Edit-Option-Index"] = edit_option_index;
+      }
     }
     if (form_id.substring(0,10)=='heat_save_') {
       formData.append('canvas_data', cs_get_canvas_data());
@@ -257,12 +257,17 @@ horizon.addInitFunction(horizon.modals.init = function() {
         }
         $form.closest(".modal").modal("hide");
         if (form_id == 'modify_resource') {
-          cs_addResource(data);
+          if (jqXHR.getResponseHeader("X-Horizon-Valid")) {
+            cs_addResource(data);
+          } else {
+            horizon.modals.success(data, textStatus, jqXHR);
+          }
         } else if (redirect_header) {
           location.href = redirect_header;
         } else if (add_to_field_header) {
           json_data = $.parseJSON(data);
           field_to_update = $("#" + add_to_field_header);
+          console.info(json_data);
           if (field_to_update.hasClass('dynamic_listbox')) {
             if (edit_option_index_header) {
               $(field_to_update.children()[edit_option_index_header]).after("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");

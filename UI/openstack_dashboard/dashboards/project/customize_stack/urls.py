@@ -22,5 +22,5 @@ urlpatterns = patterns(
     url(r'^export_template$', views.ExporttemplateView.as_view(), name='export_template'),
     url(r'^edit_resource/(?P<resource_type>[^/]+)/$', views.EditResourceView.as_view(), name='edit_resource'),
     url(r'^add_item/(?P<resource_type>[^/]+)/(?P<property>[^/]+)/$', views.DynamicListView.as_view(), name='add_item'),
-    url(r'^edit_item/(?P<resource_type>[^/]+)/(?P<property>[^/]+)/(?P<value>[^/]+)/$', views.EditDynamicListView.as_view(), name='edit_item'),
+    url(r'^edit_item/(?P<resource_type>[^/]+)/(?P<property>[^/]+)/$', views.EditDynamicListView.as_view(), name='edit_item'),
 )

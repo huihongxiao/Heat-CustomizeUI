@@ -72,7 +72,7 @@ function edit_item(name, add_link) {
   });
   if(value) {
     edit_btn.addClass('ajax-add ajax-modal');
-    edit_btn.attr('href', edit_link + value + '/');
+    edit_btn.attr('href', edit_link);
     edit_btn.attr('option-to-edit', index);
   } else {
     edit_btn.removeClass('ajax-add ajax-modal');
@@ -80,6 +80,16 @@ function edit_item(name, add_link) {
   }
 }
 
+function cs_get_option_to_edit(id) {
+  var widget = $(id), value;
+  $.each(widget.children(), function(i, option) {
+    if($(option).is(':selected')) {
+      value = $(option).attr('value');
+      index = i;
+    }
+  });
+  return value;
+}
 function cs_update(){
   node = node.data(nodes, function(d) { return d.name; });
   link = link.data(links);
@@ -189,13 +199,13 @@ function tick() {
   node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
 }
 
-function findNode(name) {
+function cs_findNode(name) {
   for (var i = 0; i < nodes.length; i++) {
     if (nodes[i].name === name){ return nodes[i]; }
   }
 }
 
-function findNodeIndex(name) {
+function cs_findNodeIndex(name) {
   for (var i = 0; i < nodes.length; i++) {
     if (nodes[i].name === name){ return i; }
   }
@@ -215,7 +225,7 @@ function cs_addNode (node) {
 
 function cs_removeNode (name) {
   var i = 0;
-  var n = findNode(name);
+  var n = cs_findNode(name);
   while (i < links.length) {
     if (links[i].source === n || links[i].target === n) {
       links.splice(i, 1);
@@ -223,24 +233,8 @@ function cs_removeNode (name) {
       i++;
     }
   }
-  nodes.splice(findNodeIndex(name),1);
+  nodes.splice(cs_findNodeIndex(name),1);
   needs_update = true;
-}
-
-function remove_nodes(old_nodes, new_nodes){
-  //Check for removed nodes
-  for (var i=0;i<old_nodes.length;i++) {
-    var remove_node = true;
-    for (var j=0;j<new_nodes.length;j++) {
-      if (old_nodes[i].name === new_nodes[j].name){
-        remove_node = false;
-        break;
-      }
-    }
-    if (remove_node === true){
-      removeNode(old_nodes[i].name);
-    }
-  }
 }
 
 function cs_build_links(){
@@ -254,10 +248,10 @@ function build_node_links(node){
   for (var j=0;j<node.required_by.length;j++){
     var push_link = true;
     var target_idx = '';
-    var source_idx = findNodeIndex(node.name);
+    var source_idx = cs_findNodeIndex(node.name);
     //make sure target node exists
     try {
-      target_idx = findNodeIndex(node.required_by[j]);
+      target_idx = cs_findNodeIndex(node.required_by[j]);
     } catch(err) {
       push_link =false;
     }
@@ -287,8 +281,8 @@ function build_reverse_links(node){
         //if new node is required by existing node, push new link
         if(node.name === dependency){
           links.push({
-            'source':findNodeIndex(nodes[i].name),
-            'target':findNodeIndex(node.name),
+            'source':cs_findNodeIndex(nodes[i].name),
+            'target':cs_findNodeIndex(node.name),
             'value':1
           });
         }
@@ -311,6 +305,9 @@ var form_init = function(modal) {
   var form = $(modal).find('form'),
     dependancy = form.find('#id_depends_on'),
     option;
+  if (!form) {
+    return;
+  }
   if (form.attr('id') == 'modify_resource') {
     if (dependancy) {
       $.each(nodes, function(i, node) {
@@ -318,12 +315,118 @@ var form_init = function(modal) {
         option.html(node.name);
         option.attr('value', node.name);
         dependancy.append(option);
-        dependancy.val('');
       });
+      dependancy.val('');
     }
   } else if (form.attr('id') == 'edit_resource') {
-    console.info('edit');
+    var nodeName = $('#node_info h3:first').html(),
+      paras = cs_findNode(nodeName).details, field, type;
+    if (dependancy) {
+      $.each(nodes, function(i, node) {
+        if (paras['resource_name'] == node.name) {
+          return;
+        }
+        option = $('<option></option>')
+        option.html(node.name);
+        option.attr('value', node.name);
+        dependancy.append(option);
+      });
+    }
+    for (key in paras) {
+      field = $('#id_' + key);
+      type = field.attr('type');
+      if (field.is('input')) {
+        if (type == 'checkbox') {
+          field.prop('checked', paras[key].toLowerCase()=='true'?true:false);
+        } else {
+          field.val(paras[key]);
+        }
+      } else if (field.is('select')) {
+        if (field.attr('multiple') == 'multiple') {
+          $.each(eval(paras[key]), function(i, item) {
+            option = $('<option></option>')
+            if (item instanceof Object) {
+              option.html(JSON.stringify(item).replace(/":"/g, '": "').replace(/","/g, '", "'));
+              option.attr('value', JSON.stringify(item).replace(/":"/g, '": "').replace(/","/g, '", "'));
+            } else {
+              option.html(item);
+              option.attr('value', item);
+            }
+            field.append(option);
+          });
+        } else {
+          field.val(paras[key]);
+        }
+      }
+    }
   }
+}
+
+var dynamic_list_form_init = function(modal) {
+  var form = $(modal).find('form'), id, value, paras, field, type, option;
+  if (!form || form.attr('id') != 'edit_item') {
+    return;
+  }
+  id = '#id_' + form.attr('action').split('/')[5];
+  value = cs_get_option_to_edit(id);
+  if (form.find('fieldset').children().length > 1) {
+    paras = eval('('+value+')');
+    for (key in paras) {
+      field = $('#id_' + key);
+      type = field.attr('type');
+      if (field.is('input')) {
+        if (type == 'checkbox') {
+          field.prop('checked', paras[key].toLowerCase()=='true'?true:false);
+        } else {
+          field.val(paras[key]);
+        }
+      } else if (field.is('select')) {
+        if (field.attr('multiple') == 'multiple') {
+          $.each(eval(paras[key]), function(i, item) {
+            option = $('<option></option>')
+            if (item instanceof Object) {
+              option.html(JSON.stringify(item));
+              option.attr('value', JSON.stringify(item));
+            } else {
+              option.html(item);
+              option.attr('value', item);
+            }
+            field.append(option);
+          });
+        } else {
+          field.val(paras[key]);
+        }
+      }
+    }
+  } else {
+    field = form.find(".form-group div").children();
+      type = field.attr('type');
+      if (field.is('input')) {
+        if (type == 'checkbox') {
+          field.prop('checked', value.toLowerCase()=='true'?true:false);
+        } else {
+          field.val(value);
+        }
+      } else if (field.is('select')) {
+        if (field.attr('multiple') == 'multiple') {
+          $.each(eval(value), function(i, item) {
+            option = $('<option></option>')
+            if (item instanceof Object) {
+              option.html(JSON.stringify(item));
+              option.attr('value', JSON.stringify(item));
+            } else {
+              option.html(item);
+              option.attr('value', item);
+            }
+            field.append(option);
+          });
+        } else {
+          field.val(value);
+        }
+      }
+  }
+  console.info(paras);
+
 }
 
 if ($(cs_container).length){
@@ -400,4 +503,5 @@ if ($(cs_container).length){
     $('#detail_box').perfectScrollbar('update');
   });
   horizon.modals.addModalInitFunction(form_init);
+  horizon.modals.addModalInitFunction(dynamic_list_form_init);
 }

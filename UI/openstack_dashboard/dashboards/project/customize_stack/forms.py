@@ -115,45 +115,20 @@ class ModifyResourceForm(forms.SelfHandlingForm):
                           'periods and hyphens.')})
     depends_on = forms.ChoiceField(label=_('Select the resource to depend on'),
                      required=False)
-#     origin_resource = None
 
     class Meta(object):
         name = _('Modify Resource Properties')
 
     def __init__(self, *args, **kwargs):
         parameters = kwargs.pop('parameters')
-#         resource = None
-#         if 'resource' in kwargs:
-#             resource = kwargs.pop('resource')
-#        self.next_view = kwargs.pop('next_view')
         super(ModifyResourceForm, self).__init__(*args, **kwargs)
         self.is_multipart = True
-#         resource_names = project_api.get_resource_names(self.request)
-#         resource_name_choice = [("", "")]
-#         for resource_name in resource_names:
-#             resource_name_choice.append((resource_name, resource_name))
-#         if resource:
-#             for idx, choice in enumerate(resource_name_choice):
-#                 if choice[0] == resource['resource_name']:
-#                     resource_name_choice.pop(idx)
-#                     break
-#             self.fields['depends_on'].initial = resource['depends_on']
-#             self.fields['resource_name'].initial = resource['resource_name']
-#             self.origin_resource = resource
-#         self.fields['depends_on'].choices = (resource_name_choice)
-#         LOG.info('Original Resource Parameters %s' % parameters)
         res_type = parameters['resource_type']
         target_cls = resource_type_map.get(res_type, None)
         self.res_cls = target_cls(self.request)
         self._build_parameter_fields(parameters)
 
     def _build_parameter_fields(self, params):
-#         if resource:
-#             for prop_name, prop_data in sorted(params.items()):
-#                 if (prop_name in resource and
-#                         isinstance(params[prop_name], dict)):
-#                     params[prop_name]['default'] = resource.get(prop_name)
-
         self.fields['resource_type'].initial = params.pop('resource_type')
         fields = self.res_cls.generate_prop_fields(params)
         for key, value in fields.items():
@@ -318,32 +293,3 @@ class DynamicListForm(forms.SelfHandlingForm):
 class EditDynamicListForm(DynamicListForm):
     class Meta(object):
         name = _('Edit Item')
-        
-    def __init__(self, *args, **kwargs):
-        self.resource_type = kwargs.pop('resource_type')
-        self.property = kwargs.pop('property')
-        self.value = kwargs.pop('value')
-        request = kwargs.get('request')
-        super(DynamicListForm, self).__init__(*args, **kwargs)
-        target_cls = resource_type_map.get(self.resource_type, None)
-        self.res_cls = target_cls(request)
-        self.prop_schema = self._get_property_schema(request, self.resource_type, self.property)
-        schema = self.prop_schema.get('schema', None)
-        if schema:
-            fields = self.res_cls.generate_prop_fields(schema['*']['schema'])
-            inits = jsonutils.loads(self.value)
-            for key, value in fields.items():
-                self.fields[key] = value
-                self.fields[key].initial = inits[key]
-                
-        else:
-            self.fields[self.property] = forms.CharField(label=self.property, required=False)
-            self.fields[self.property].initial = self.value;
-
-    def handle(self, request, data):
-        dt = data.get(self.property, data)
-        if isinstance(dt, dict):
-            tt = dict((k, v) for k, v in dt.items() if v)
-            return json.dumps(tt)
-        else:
-            return dt
