@@ -265,16 +265,16 @@ def gen_resource_d3_data(resource_folk):
 #         f.close()
 #         mutex.release(request.user.id)
         
-def del_dependencies(resources, to_del):
-    for resource in resources:
-        if resource['depends_on'] == to_del:
-            resource['depends_on'] = None
-    
-def modify_dependencies(resources, origin, new):
-    for resource in resources:
-        if resource['depends_on'] == origin:
-            resource['depends_on'] = new
-            
+# def del_dependencies(resources, to_del):
+#     for resource in resources:
+#         if resource['depends_on'] == to_del:
+#             resource['depends_on'] = None
+#     
+# def modify_dependencies(resources, origin, new):
+#     for resource in resources:
+#         if resource['depends_on'] == origin:
+#             resource['depends_on'] = new
+#             
 def _generate_template(resources):
     template = {
         'heat_template_version': '2013-05-23',

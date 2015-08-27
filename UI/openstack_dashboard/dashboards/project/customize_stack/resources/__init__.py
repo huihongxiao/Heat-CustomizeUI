@@ -23,103 +23,17 @@ from django.core.exceptions import ValidationError
 from django.core import urlresolvers
 from django.utils.safestring import mark_safe
 
-# 
-# class ListWidget(forms.MultiWidget):
-#     def __init__(self, widgets=None, attrs=None, labels=None):
-#         super(ListWidget, self).__init__(widgets, attrs)
-#         self.labels = labels
-# 
-#     def decompress(self, value):
-#         if value:
-#             return value
-#         return ''
-# 
-#     def format_output(self, rendered_widgets):
-#         ret = ''
-#         for i in range(len(rendered_widgets)):
-#             if self.labels[i]:
-#                 ret += ('<label>%s</label>%s' % (self.labels[i],
-#                                                  rendered_widgets[i]))
-#             else:
-#                 ret += '%s' % rendered_widgets[i]
-#         return '<div style="margin-left:15px">'+ret+'</div>'
-# 
-#     def render(self, name, value, attrs=None):
-#         if self.is_localized:
-#             for widget in self.widgets:
-#                 widget.is_localized = self.is_localized
-#         # value is a list of values, each corresponding to a widget
-#         # in self.widgets.
-#         if not isinstance(value, list):
-#             value = self.decompress(value)
-#         output = []
-#         final_attrs = self.build_attrs(attrs)
-#         id_ = final_attrs.get('id', None)
-#         for i, widget in enumerate(self.widgets):
-#             try:
-#                 if isinstance(value, dict):
-#                     widget_value = value.get(self.labels[i])
-#                 else:
-#                     widget_value = value[i]
-#             except (IndexError, KeyError):
-#                 widget_value = None
-#             if id_:
-#                 final_attrs = dict(final_attrs, id='%s_%s' % (id_, i))
-#             output.append(widget.render(name + '_%s' % i, widget_value, final_attrs))
-#         return mark_safe(self.format_output(output))
-# 
-# 
-# class ListField(forms.MultiValueField):
-#     def __init__(self, fields=(), *args, **kwargs):
-#         super(ListField, self).__init__(*args, **kwargs)
-#         for f in fields:
-#             f.required = False
-#         self.fields = fields
-#         widgets = [ff.widget for ff in self.fields]
-#         self.labels = [ff.label for ff in self.fields]
-#         self.widget = ListWidget(widgets=widgets,
-#                                  labels=self.labels)
-# 
-#     def compress(self, data_list):
-#         if data_list:
-#             return [data for data in data_list if data and data != 'None']
-#         return []
-# 
-# 
-# class MapField(forms.MultiValueField):
-#     def __init__(self, fields=(), *args, **kwargs):
-#         super(MapField, self).__init__(*args, **kwargs)
-#         for f in fields:
-#             f.required = False
-#         self.fields = fields
-#         widgets = [ff.widget for ff in self.fields]
-#         self.labels = [ff.label for ff in self.fields]
-#         self.widget = ListWidget(widgets=widgets,
-#                                  labels=self.labels)
-# 
-#     def compress(self, data_list):
-#         ret = {}
-#         if data_list:
-#             for i in range(len(data_list)):
-#                 if data_list[i]:
-#                     ret[self.labels[i]] = data_list[i]
-#         return ret
-# 
-# 
-# class MapCharField(forms.CharField):
-#     default_error_messages = {
-#         'invalid': _('Enter a json format string.'),
-#     }
-# 
-#     def to_python(self, value):
-#         "Returns a Unicode object."
-#         if value in self.empty_values:
-#             return {}
-#         try:
-#             ret = jsonutils.loads(value.replace('\'', '\"'))
-#         except Exception as ex:
-#             raise ValidationError(self.error_messages['invalid'], code='invalid')
-#         return ret
+class DependancyField(forms.ChoiceField):
+
+    def __init__(self, choices=(), required=True, widget=None, label=None,
+                 initial=None, help_text='', *args, **kwargs):
+        label=_('Select the resource to depend on')
+        required=False
+        super(DependancyField, self).__init__(required=required, widget=widget, label=label,
+            initial=initial, help_text=help_text, *args, **kwargs)
+   
+    def valid_value(self, value):
+        return True
 
 class DynamicListWidget(forms.SelectMultiple):
     _data_add_url_attr = "data-add-item-url"

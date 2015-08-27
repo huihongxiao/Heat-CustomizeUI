@@ -262,6 +262,12 @@ horizon.addInitFunction(horizon.modals.init = function() {
           } else {
             horizon.modals.success(data, textStatus, jqXHR);
           }
+        } else if (form_id == 'edit_resource') {
+          if (jqXHR.getResponseHeader("X-Horizon-Valid")) {
+            cs_editResource(data);
+          } else {
+            horizon.modals.success(data, textStatus, jqXHR);
+          }
         } else if (redirect_header) {
           location.href = redirect_header;
         } else if (add_to_field_header) {

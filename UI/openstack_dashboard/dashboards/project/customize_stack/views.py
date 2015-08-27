@@ -102,7 +102,7 @@ class ModifyResourceView(forms.ModalFormView):
     form_class = project_forms.ModifyResourceForm
     submit_label = _("Add")
     submit_url = reverse_lazy("horizon:project:customize_stack:modify_resource")
-    success_url = reverse_lazy('horizon:project:customize_stack:index')
+    success_url = reverse_lazy('horizon:project:customize_stack:modify_resource')
     page_title = _("Modify Resource Properties")
 
     def get_initial(self):
@@ -112,7 +112,6 @@ class ModifyResourceView(forms.ModalFormView):
 
     def get_form_kwargs(self):
         kwargs = super(ModifyResourceView, self).get_form_kwargs()
-#        kwargs['next_view'] = PreviewResourceDetailsView
         if not self.kwargs:
             kwargs['parameters'] = json.loads(self.request.POST['parameters'])
         else:
@@ -132,14 +131,13 @@ class ModifyResourceView(forms.ModalFormView):
         else:
             return self.form_invalid(form)
    
-class EditResourceView(forms.ModalFormView):
+class EditResourceView(ModifyResourceView):
     template_name = 'project/customize_stack/modify.html'
     modal_header = _("Edit Resource")
     form_id = "edit_resource"
-    form_class = project_forms.ModifyResourceForm
+    form_class = project_forms.EditResourceForm
     submit_label = _("Confirm")
     submit_url = "horizon:project:customize_stack:edit_resource"
-    success_url = reverse_lazy('horizon:project:customize_stack:index')
     page_title = _("Edit Resource")
     
     def get_context_data(self, **kwargs):
@@ -151,8 +149,6 @@ class EditResourceView(forms.ModalFormView):
     def _get_resource_properties(self, request, resource_type):
         resource_properties = {}
         try:
-            # resource = api.heat.resource_type_generate_template(request, resource_type)
-            # resource_properties = resource['Parameters']
             resource = api.heat.resource_type_get(request, resource_type)
             resource_properties = resource['properties']
         except Exception:
@@ -162,26 +158,17 @@ class EditResourceView(forms.ModalFormView):
     
     def get_initial(self):
         initial = {}
-#         resource = self._get_resource(self.kwargs['resource_name'])
         kwargs = self._get_resource_properties(self.request, self.kwargs['resource_type'])
         kwargs['resource_type'] = self.kwargs['resource_type']
-        # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
-        # request so that we can chain it as an input to the next view...
-        # but hey, it totally works.
-#         self.kwargs = kwargs
-        
         initial['parameters'] = kwargs
-#         initial['resource'] = resource
         return initial
 
     def get_form_kwargs(self):
         kwargs = super(EditResourceView, self).get_form_kwargs()
-#        kwargs['next_view'] = PreviewResourceDetailsView
         if not self.kwargs:
             kwargs['parameters'] = json.loads(self.request.POST['parameters'])
         else:
             kwargs['parameters'] = kwargs['initial']['parameters']
-#         kwargs['resource'] = kwargs['initial']['resource']
         return kwargs
 
 class PreviewResourceDetailsView(forms.ModalFormMixin, views.HorizonTemplateView):

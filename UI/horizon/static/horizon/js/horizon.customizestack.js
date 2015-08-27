@@ -90,14 +90,38 @@ function cs_get_option_to_edit(id) {
   });
   return value;
 }
+
+function blow_up_image(name) {
+  var image = d3.select("#image_"+name);
+  image
+    .transition()
+    .attr("x", function(d) { return d.image_x - 5; })
+    .attr("y", function(d) { return d.image_y - 5; })
+    .attr("width", function(d) { return d.image_size + 10; })
+    .attr("height", function(d) { return d.image_size + 10; })
+    .duration(100);
+}
+
+function recover_image(name) {
+  var image = d3.select("#image_"+name);
+  image
+    .transition()
+    .attr("x", function(d) { return d.image_x; })
+    .attr("y", function(d) { return d.image_y; })
+    .attr("width", function(d) { return d.image_size; })
+    .attr("height", function(d) { return d.image_size; })
+    .duration(100);
+
+}
+
 function cs_update(){
   node = node.data(nodes, function(d) { return d.name; });
   link = link.data(links);
 
   var nodeEnter = node.enter().append("g")
     .attr("class", "node")
-    .attr("node_name", function(d) { return d.name; })
-    .attr("node_id", function(d) { return d.instance; })
+//    .attr("node_name", function(d) { console.info(d.name); return d.name; })
+//    .attr("node_id", function(d) { return d.instance; })
     .call(force.drag);
 
   nodeEnter.append("image")
@@ -122,27 +146,25 @@ function cs_update(){
       $("#node_icon").html(icon);
       showBrief(d.details);
       $("#node_info").html(d.info_box);
+      blow_up_image(d.name);
     }
   });
-  node.on("mouseout", function() {
+  node.on("mouseout", function(d) {
     if(!node_selected) {
       $("#node_icon").html('');
       $("#node_info").html('');
+      recover_image(d.name);
     }
   });
   node.on("click", function(d) {
     $('#detail_box').perfectScrollbar('destroy');
-//    icon = $('<img/>');
-//    icon.attr('src', d.image);
-//    $('#node_icon').html(icon);
     showDetails(d.details);
     $('#opt_bar').show();
-//    $('#cus_stack_action_delete').attr('href',"/project/customize_stack/delete_resource/" + d.name + "/");
     $('#cus_stack_action_delete').click(function() {
       cs_removeNode(d.name);
       cs_build_links;
       cs_update();
-      node_selected = false;
+      node_selected = null;
       $("#node_icon").html('');
       $("#node_info").html('');
       $('#opt_bar').hide();
@@ -151,7 +173,11 @@ function cs_update(){
     $('#cus_stack_action_edit').attr('href',"/project/customize_stack/edit_resource/"
       + encodeURIComponent(d.details.resource_type) + "/");
     $('#detail_box').perfectScrollbar();
-    node_selected = true;
+    if (node_selected) {
+      recover_image(node_selected);
+      blow_up_image(d.name);
+    }
+    node_selected = d.name;
     d3.event.stopPropagation()
   });
 
@@ -218,9 +244,28 @@ function cs_addResource(resource) {
   cs_update();
 }
 
+function cs_editResource(resource) {
+  var toEdit = $.parseJSON(resource);
+  cs_editNode(toEdit);
+  cs_build_links();
+  cs_update();
+}
+
 function cs_addNode (node) {
   nodes.push(node);
-  needs_update = true;
+}
+
+function cs_editNode (d) {
+  var current_node = cs_findNode(d['original_name']),
+    this_image;
+  delete d['original_name'];
+  this_image = d3.select("#image_"+current_node.name);
+  this_image.attr('id', "#image_"+d.name);
+  for (key in d) {
+    current_node[key] = d[key];
+  }
+  showDetails(current_node.details);
+  $('#detail_box').perfectScrollbar('update');
 }
 
 function cs_removeNode (name) {
@@ -234,7 +279,6 @@ function cs_removeNode (name) {
     }
   }
   nodes.splice(cs_findNodeIndex(name),1);
-  needs_update = true;
 }
 
 function cs_build_links(){
@@ -310,6 +354,10 @@ var form_init = function(modal) {
   }
   if (form.attr('id') == 'modify_resource') {
     if (dependancy) {
+      option = $('<option></option>')
+      option.html('');
+      option.attr('value', '');
+      dependancy.append(option);
       $.each(nodes, function(i, node) {
         option = $('<option></option>')
         option.html(node.name);
@@ -322,6 +370,10 @@ var form_init = function(modal) {
     var nodeName = $('#node_info h3:first').html(),
       paras = cs_findNode(nodeName).details, field, type;
     if (dependancy) {
+      option = $('<option></option>')
+      option.html('');
+      option.attr('value', '');
+      dependancy.append(option);
       $.each(nodes, function(i, node) {
         if (paras['resource_name'] == node.name) {
           return;
@@ -332,6 +384,7 @@ var form_init = function(modal) {
         dependancy.append(option);
       });
     }
+    $('#id_original_name').attr('value', paras['resource_name']);
     for (key in paras) {
       field = $('#id_' + key);
       type = field.attr('type');
@@ -473,13 +526,13 @@ if ($(cs_container).length){
     group = svg.append("g"),
     node = group.selectAll(".node"),
     link = group.selectAll(".link"),
-    needs_update = false,
     nodes = force.nodes(),
     links = force.links(),
-    node_selected = false;
+    node_selected = null;
     
   svg.on("click", function() {
-    node_selected = false;
+    recover_image(node_selected);
+    node_selected = null;
     $("#node_icon").html('');
     $("#node_info").html('');
     $('#opt_bar').hide();

@@ -100,8 +100,8 @@ class SelectResourceForm(forms.SelfHandlingForm):
 
 class ModifyResourceForm(forms.SelfHandlingForm):
     param_prefix = ''
-    parameters = forms.CharField(
-        widget=forms.widgets.HiddenInput)
+#     parameters = forms.CharField(
+#         widget=forms.widgets.HiddenInput)
     resource_type = forms.CharField(
         widget=forms.widgets.HiddenInput)
     resource_name = forms.RegexField(
@@ -113,8 +113,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
                         _('Name must start with a letter and may '
                           'only contain letters, numbers, underscores, '
                           'periods and hyphens.')})
-    depends_on = forms.ChoiceField(label=_('Select the resource to depend on'),
-                     required=False)
+    depends_on = resources.DependancyField()
 
     class Meta(object):
         name = _('Modify Resource Properties')
@@ -151,9 +150,23 @@ class ModifyResourceForm(forms.SelfHandlingForm):
 #         return data
     
     def handle(self, request, data, **kwargs):
-        data.pop('parameters')
+#         data.pop('parameters')
         res_data = self.res_cls.generate_res_data(data)
         return json.dumps(project_api.gen_resource_d3_data(res_data))
+
+class EditResourceForm(ModifyResourceForm):
+    original_name = forms.CharField(
+        widget=forms.widgets.HiddenInput)
+
+    class Meta(object):
+        name = _('Edit Resource Properties')
+
+    def handle(self, request, data, **kwargs):
+        original_name = data.pop('original_name')
+        res_data = self.res_cls.generate_res_data(data)
+        d3_data = project_api.gen_resource_d3_data(res_data)
+        d3_data['original_name'] = original_name
+        return json.dumps(d3_data)
 
 class LaunchStackForm(forms.SelfHandlingForm):
     stack_name = forms.RegexField(
