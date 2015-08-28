@@ -51,6 +51,21 @@ function cs_get_canvas_data() {
   return(JSON.stringify(resources));
 }
 
+function cs_get_files() {
+  return attached_files;
+}
+
+function cs_add_attached_files(resource_name) {
+  $.each($('input[type="file"]'), function (i, widget) {
+    $.each(widget.files, function (j, file) {
+      var file_name = resource_name + $(widget).attr('name') + j;
+      attached_files[file_name] = file;
+      console.info(file_name);
+      console.info(file);
+    })
+  });
+}
+
 function del_items(name) {
   var id; 
   id = 'id_' + name;
@@ -104,9 +119,10 @@ function blow_up_image(name) {
 
 function recover_image(name) {
   var image = d3.select("#image_"+name);
+  console.info(image);
   image
     .transition()
-    .attr("x", function(d) { return d.image_x; })
+    .attr("x", function(d) {console.info(d); return d.image_x; })
     .attr("y", function(d) { return d.image_y; })
     .attr("width", function(d) { return d.image_size; })
     .attr("height", function(d) { return d.image_size; })
@@ -247,6 +263,7 @@ function cs_addResource(resource) {
 function cs_editResource(resource) {
   var toEdit = $.parseJSON(resource);
   cs_editNode(toEdit);
+  cs_clean_links();
   cs_build_links();
   cs_update();
 }
@@ -260,7 +277,7 @@ function cs_editNode (d) {
     this_image;
   delete d['original_name'];
   this_image = d3.select("#image_"+current_node.name);
-  this_image.attr('id', "#image_"+d.name);
+  this_image.attr('id', "image_"+d.name);
   for (key in d) {
     current_node[key] = d[key];
   }
@@ -285,6 +302,14 @@ function cs_build_links(){
   for (var i=0;i<nodes.length;i++){
     build_node_links(nodes[i]);
     build_reverse_links(nodes[i]);
+  }
+}
+
+function cs_clean_links(){
+  for (var i=0;i<links.length;i++){
+    if (!$.inArray(links[i].target, links[i].source.required_by)) {
+      links.pop(i);
+    }
   }
 }
 
@@ -528,10 +553,13 @@ if ($(cs_container).length){
     link = group.selectAll(".link"),
     nodes = force.nodes(),
     links = force.links(),
-    node_selected = null;
+    node_selected = null,
+    attached_files = {};
     
   svg.on("click", function() {
-    recover_image(node_selected);
+    if (node_selected) {
+      recover_image(node_selected);
+    }
     node_selected = null;
     $("#node_icon").html('');
     $("#node_info").html('');

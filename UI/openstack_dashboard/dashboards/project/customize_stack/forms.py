@@ -91,17 +91,14 @@ class SelectResourceForm(forms.SelfHandlingForm):
     def handle(self, request, data):
         kwargs = self._get_resource_type(self.request, data.get('resource_type'))
         kwargs['resource_type'] = data.get('resource_type') 
-        # NOTE (gabriel): This is a bit of a hack, essentially rewriting this
-        # request so that we can chain it as an input to the next view...
-        # but hey, it totally works.
         request.method = 'GET'
 
         return self.next_view.as_view()(request, **kwargs)
 
 class ModifyResourceForm(forms.SelfHandlingForm):
     param_prefix = ''
-#     parameters = forms.CharField(
-#         widget=forms.widgets.HiddenInput)
+    parameters = forms.CharField(
+        widget=forms.widgets.HiddenInput)
     resource_type = forms.CharField(
         widget=forms.widgets.HiddenInput)
     resource_name = forms.RegexField(
@@ -132,7 +129,7 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         fields = self.res_cls.generate_prop_fields(params)
         for key, value in fields.items():
             self.fields[key] = value
-    
+        print self.fields
 #     def clean(self, **kwargs):
 #         data = super(ModifyResourceForm, self).clean()
 #         existing_names = project_api.get_resource_names(self.request)
@@ -207,10 +204,16 @@ class SaveDraftForm(forms.SelfHandlingForm):
                           'periods and hyphens.')},
         validators=[project_api.validate_template_name])
 
+    def __init__(self, *args, **kwargs):
+        super(SaveDraftForm, self).__init__(*args, **kwargs)
+        self.is_multipart = True
+
     class Meta(object):
         name = _('Save Template')
 
     def handle(self, request, data):
+        print self.data
+        print request.FILES
         project_api.save_template(request.user.id, data.get('template_name'), self.data['canvas_data'])
         return True
 
@@ -218,6 +221,7 @@ class SaveTemplateForm(forms.SelfHandlingForm):
     def __init__(self, *args, **kwargs):
         self.template_name = kwargs.pop('template_name')
         super(SaveTemplateForm, self).__init__(*args, **kwargs)
+        self.is_multipart = True
 
     class Meta(object):
         name = _('Save Template')
@@ -226,44 +230,9 @@ class SaveTemplateForm(forms.SelfHandlingForm):
         project_api.save_template(request.user.id, self.template_name, self.data['canvas_data'])
         return True
 
-class SaveTemplateAsForm(forms.SelfHandlingForm):
-    template_name = forms.RegexField(
-        max_length=255,
-        label=_('Template Name'),
-        help_text=_('Name of the template to save as.'),
-        regex=r"^[a-zA-Z][a-zA-Z0-9_.-]*$",
-        error_messages={'invalid':
-                        _('Name must start with a letter and may '
-                          'only contain letters, numbers, underscores, '
-                          'periods and hyphens.')},
-        validators=[project_api.validate_template_name])
-
+class SaveTemplateAsForm(SaveDraftForm):
     class Meta(object):
         name = _('Save As')
-
-    def handle(self, request, data):
-        project_api.save_template(request.user.id, data.get('template_name'), self.data['canvas_data'])
-        return True
-
-# class ClearCanvasForm(forms.SelfHandlingForm):
-#     class Meta(object):
-#         name = _('Clear the canvas')
-# 
-#     def handle(self, request, data):
-#         project_api.clean_template_folder(self.request.user.id, only_template=True)
-#         return True
-
-# class DeleteResourceForm(forms.SelfHandlingForm):
-#     class Meta(object):
-#         name = _('Modify Resource Properties')
-# 
-#     def __init__(self, *args, **kwargs):
-#         self.resource_name = kwargs.pop('resource_name')
-#         super(DeleteResourceForm, self).__init__(*args, **kwargs)
-# 
-#     def handle(self, request, data):
-#         project_api.del_resource_from_draft(request, self.resource_name)
-#         return True
 
 class DynamicListForm(forms.SelfHandlingForm):
     class Meta(object):

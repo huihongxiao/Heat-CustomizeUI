@@ -205,7 +205,8 @@ horizon.addInitFunction(horizon.modals.init = function() {
         // support setting custom headers in AJAX requests either, so
         // modal forms won't work in them (namely, IE9).
         return;
-      } else {	
+      } else {
+      //Hack for updating all options in dynamic lists.
       if (!update_field_id) {
         $('.dynamic_listbox option').prop('selected', true);
       }
@@ -225,8 +226,19 @@ horizon.addInitFunction(horizon.modals.init = function() {
         headers["X-Horizon-Edit-Option-Index"] = edit_option_index;
       }
     }
+
     if (form_id.substring(0,10)=='heat_save_') {
       formData.append('canvas_data', cs_get_canvas_data());
+      var attached_files = cs_get_files();
+      for(file_name in attached_files) {
+        formData.append(file_name, attached_files[file_name]);
+      }
+    }
+
+    if (form_id == 'modify_resource' || form_id == 'edit_resource') {
+      if ($('#id_resource_name') && $('#id_resource_name').val() != '') {
+        cs_add_attached_files($('#id_resource_name').val());
+      }
     }
 
     ajaxOpts = {

@@ -102,7 +102,7 @@ class ModifyResourceView(forms.ModalFormView):
     form_class = project_forms.ModifyResourceForm
     submit_label = _("Add")
     submit_url = reverse_lazy("horizon:project:customize_stack:modify_resource")
-    success_url = reverse_lazy('horizon:project:customize_stack:modify_resource')
+    success_url = reverse_lazy('horizon:project:customize_stack:index')
     page_title = _("Modify Resource Properties")
 
     def get_initial(self):

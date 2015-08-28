@@ -113,6 +113,7 @@ class BaseResource(object):
     def generate_prop_fields(self, params):
         fields = {}
         for prop_name, prop_data in sorted(params.items()):
+            print prop_name, prop_data
             if prop_name in self.invisible_properties:
                 continue
             if hasattr(self, 'handle_prop'):
