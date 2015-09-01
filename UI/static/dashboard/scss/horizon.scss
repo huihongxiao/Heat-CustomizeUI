@@ -1745,16 +1745,36 @@ label.log-length {
 }
 
 select.dynamic_listbox {
-	height: 90px;
+  height: 90px;
 }
 
 .dynamic_list_btn {
-	display: block;
-	margin-top: -1px;
-	border-radius: 0;
+  display: block;
+  margin-top: -1px;
+  border-radius: 0;
 }
 .dynamic_list_btn span {
-	width: 10px;
+  width: 10px;
+}
+
+.cs_file_button {
+  position: absolute;
+  height: 22px;
+  width: 75px;
+  padding-top: 1px;
+}
+.cs_file_name {
+  position: absolute;
+  margin-top: 1px;
+  margin-left:80px;
+}
+.cs_file_spacer {
+  height: 22px;
+}
+.cs_file_input {
+  opacity: 0;
+  position: absolute;
+  z-index: 100;
 }
 
 /* Styling for dynamic scroll bar */
