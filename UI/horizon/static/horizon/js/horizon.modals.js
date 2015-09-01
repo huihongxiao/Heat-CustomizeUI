@@ -239,6 +239,7 @@ horizon.addInitFunction(horizon.modals.init = function() {
       if ($('#id_resource_name') && $('#id_resource_name').val() != '') {
         cs_add_attached_files($('#id_resource_name').val());
       }
+      formData.append('res_name_dup', cs_check_dup(form_id));
     }
 
     ajaxOpts = {

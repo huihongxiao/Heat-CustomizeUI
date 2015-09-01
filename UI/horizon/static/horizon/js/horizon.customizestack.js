@@ -27,6 +27,25 @@ $(document).on('click', '.cs-simple-btn', function (evt) {
   $this.blur();
 });
 
+function cs_check_dup(form_id) {
+  var new_name = $('#id_resource_name').val(), ori_name, duplicated = false;
+  if (form_id == 'edit_resource') {
+    ori_name = $('#id_original_name').val();
+    $.each(nodes, function(i, node) {
+      if (node.name == new_name && ori_name != new_name) {
+        duplicated = true;
+      }
+    });
+  } else if (form_id == 'modify_resource') {
+    $.each(nodes, function(i, node) {
+      if (node.name == new_name) {
+        duplicated = true;
+      }
+    });
+  }
+  return duplicated;
+}
+
 function cs_clear() {
   var names = [], index = 0, id;
   $.each(nodes, function(i, node) {
@@ -227,7 +246,15 @@ function showDetails(d) {
     seg.html(key);
     details.append(seg);
     seg = $('<p></p>');
-    seg.html(d[key]?d[key]:'None');
+    if (d[key]) {
+      if (d[key].slice(0,14) == "{'get_file': '") {
+        seg.html(d[key].slice(14,-2));
+      } else {
+        seg.html(d[key]);
+      }
+    } else {
+      seg.html('-');
+    }
     details.append(seg);
   }
 }
@@ -306,8 +333,8 @@ function cs_build_links(){
 }
 
 function cs_clean_links(){
-  for (var i=0;i<links.length;i++){
-    if (!$.inArray(links[i].target, links[i].source.required_by)) {
+  for (var i=links.length-1;i>=0;i--){
+    if ($.inArray(links[i].target, links[i].source.required_by) < 0) {
       links.pop(i);
     }
   }
@@ -416,6 +443,27 @@ var form_init = function(modal) {
       if (field.is('input')) {
         if (type == 'checkbox') {
           field.prop('checked', paras[key].toLowerCase()=='true'?true:false);
+        } else if (type == 'file') {
+          field.addClass('cs_file_input');
+          var button, name, spacer;
+          button = $("<button class='cs_file_button'></button>");
+          button.html('Browse...');
+          button.click(function (e) {
+            e.preventDefault();
+            field.click();
+          });
+          field.parent().append(button);
+          name = $("<p class='cs_file_name'></p>");
+          name.html(paras[key].slice(14,-2));
+          field.parent().append(name);
+          spacer = $('<div class="cs_file_spacer"></div>');
+          field.parent().append(spacer);
+          field.change(function() {
+            $(this).removeClass('cs_file_input');
+            button.remove();
+            name.remove();
+            spacer.remove();
+          });
         } else {
           field.val(paras[key]);
         }

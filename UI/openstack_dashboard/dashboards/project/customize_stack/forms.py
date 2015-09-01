@@ -129,21 +129,12 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         fields = self.res_cls.generate_prop_fields(params)
         for key, value in fields.items():
             self.fields[key] = value
-#     def clean(self, **kwargs):
-#         data = super(ModifyResourceForm, self).clean()
-#         existing_names = project_api.get_resource_names(self.request)
-#         if 'resource_name' in data:
-#             if self.origin_resource :
-#                 for name in existing_names:
-#                     if data['resource_name'] == name and name != self.origin_resource['resource_name']:
-#                         raise ValidationError(
-#                             _("There is already a resource with the same name.")) 
-#             else :
-#                 for name in existing_names:
-#                     if data['resource_name'] == name:
-#                         raise ValidationError(
-#                             _("There is already a resource with the same name.")) 
-#         return data
+    def clean(self, **kwargs):
+        data = super(ModifyResourceForm, self).clean()
+        if json.loads(self.data.get('res_name_dup')):
+            raise ValidationError(
+                    _("There is already a resource with the same name.")) 
+        return data
     
     def handle(self, request, data, **kwargs):
 #         data.pop('parameters')
@@ -234,7 +225,7 @@ class SaveTemplateForm(forms.SelfHandlingForm):
         name = _('Save Template')
 
     def handle(self, request, data):
-        project_api.save_template(request.user.id, self.template_name, self.data['canvas_data'])
+        project_api.save_template(self.template_name, self.data['canvas_data'])
         return True
 
 class SaveTemplateAsForm(SaveDraftForm):

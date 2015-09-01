@@ -129,7 +129,6 @@ class BaseResource(object):
     def generate_res_data(self, data):
         ret = {'depends_on': None}
         for key, value in sorted(data.items()):
-            print key,value
             if hasattr(self, 'handle_resource'):
                 handler = getattr(self, 'handle_resource')
                 name, val = handler(key, value)
