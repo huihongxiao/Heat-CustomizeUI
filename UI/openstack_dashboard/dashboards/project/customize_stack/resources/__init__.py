@@ -113,7 +113,6 @@ class BaseResource(object):
     def generate_prop_fields(self, params):
         fields = {}
         for prop_name, prop_data in sorted(params.items()):
-            print prop_name, prop_data
             if prop_name in self.invisible_properties:
                 continue
             if hasattr(self, 'handle_prop'):
@@ -130,6 +129,7 @@ class BaseResource(object):
     def generate_res_data(self, data):
         ret = {'depends_on': None}
         for key, value in sorted(data.items()):
+            print key,value
             if hasattr(self, 'handle_resource'):
                 handler = getattr(self, 'handle_resource')
                 name, val = handler(key, value)
@@ -262,8 +262,9 @@ class BaseResource(object):
         attributes['data-' + prefix + 'source-' + input_type] = name
         return attributes
 
-    def save_user_file(self, file):
-        return project_api.save_user_file(self.request.user.id, file)
+#     def save_user_file(self, file):
+#         return project_api.save_user_file(self.request.user.id, file)
+#         pass
 
     def filter_resource(self, resource_types=None, include_empty=False):
         resources = project_api._get_resources_from_file(self.request.user.id)

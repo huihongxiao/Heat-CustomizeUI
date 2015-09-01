@@ -71,8 +71,8 @@ class Server(resources.BaseResource):
         if name == 'user_data':
             files = self.request.FILES
             if files.get('user_data'):
-                path = self.save_user_file(files.get('user_data'))
-                return name, {'get_file': 'file://' + path}
+                file_name = files.get('user_data').name.encode('iso8859-1')
+                return name, {'get_file': file_name}
             else:
                 return None, None
         else:

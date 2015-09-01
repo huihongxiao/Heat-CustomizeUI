@@ -58,10 +58,8 @@ function cs_get_files() {
 function cs_add_attached_files(resource_name) {
   $.each($('input[type="file"]'), function (i, widget) {
     $.each(widget.files, function (j, file) {
-      var file_name = resource_name + $(widget).attr('name') + j;
+      var file_name = file.name;
       attached_files[file_name] = file;
-      console.info(file_name);
-      console.info(file);
     })
   });
 }
@@ -198,6 +196,8 @@ function cs_update(){
   });
 
   force.start();
+  //notice content tab to reload at the next click
+  $('a[data-target="#customizestack_tabs__content"]').attr('data-loaded', 'false');
 }
 
 function showBrief(d) {

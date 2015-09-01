@@ -129,7 +129,6 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         fields = self.res_cls.generate_prop_fields(params)
         for key, value in fields.items():
             self.fields[key] = value
-        print self.fields
 #     def clean(self, **kwargs):
 #         data = super(ModifyResourceForm, self).clean()
 #         existing_names = project_api.get_resource_names(self.request)
@@ -165,7 +164,7 @@ class EditResourceForm(ModifyResourceForm):
         d3_data['original_name'] = original_name
         return json.dumps(d3_data)
 
-class LaunchStackForm(forms.SelfHandlingForm):
+class LaunchDraftForm(forms.SelfHandlingForm):
     stack_name = forms.RegexField(
         max_length=255,
         label=_('Stack Name'),
@@ -189,7 +188,16 @@ class LaunchStackForm(forms.SelfHandlingForm):
         name = _('Launch Stack')
 
     def handle(self, request, data):
-        project_api.launch_stack(request, data.get('stack_name'), data.get('enable_rollback'), data.get('timeout_mins'))
+        project_api.launch_draft(request, data.get('stack_name'), data.get('enable_rollback'), data.get('timeout_mins'), self.data['canvas_data'])
+        return True
+
+class LaunchTemplateForm(LaunchDraftForm):
+    def __init__(self, *args, **kwargs):
+        self.template_name = kwargs.pop('template_name')
+        super(LaunchTemplateForm, self).__init__(*args, **kwargs)
+    
+    def handle(self, request, data):
+        project_api.launch_template(request, data.get('stack_name'), data.get('enable_rollback'), data.get('timeout_mins'), self.template_name)
         return True
 
 class SaveDraftForm(forms.SelfHandlingForm):
@@ -212,9 +220,8 @@ class SaveDraftForm(forms.SelfHandlingForm):
         name = _('Save Template')
 
     def handle(self, request, data):
-        print self.data
-        print request.FILES
-        project_api.save_template(request.user.id, data.get('template_name'), self.data['canvas_data'])
+        project_api.save_template(data.get('template_name'), self.data['canvas_data'])
+        project_api.save_user_file(data.get('template_name'), request.FILES)
         return True
 
 class SaveTemplateForm(forms.SelfHandlingForm):

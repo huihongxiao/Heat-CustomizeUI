@@ -171,16 +171,16 @@ class EditResourceView(ModifyResourceView):
             kwargs['parameters'] = kwargs['initial']['parameters']
         return kwargs
 
-class PreviewResourceDetailsView(forms.ModalFormMixin, views.HorizonTemplateView):
-    template_name = 'project/customize_stack/preview_details.html'
-    page_title = _("Preview Resource Details")
-
-    def get_context_data(self, **kwargs):
-        context = super(
-            PreviewResourceDetailsView, self).get_context_data(**kwargs)
-        LOG.error("Resource details are %s" % self.kwargs['resource_details'])
-        context['resource_details'] = self.kwargs['resource_details']
-        return context
+# class PreviewResourceDetailsView(forms.ModalFormMixin, views.HorizonTemplateView):
+#     template_name = 'project/customize_stack/preview_details.html'
+#     page_title = _("Preview Resource Details")
+# 
+#     def get_context_data(self, **kwargs):
+#         context = super(
+#             PreviewResourceDetailsView, self).get_context_data(**kwargs)
+#         LOG.error("Resource details are %s" % self.kwargs['resource_details'])
+#         context['resource_details'] = self.kwargs['resource_details']
+#         return context
 
 class ExporttemplateView(forms.ModalFormMixin, views.HorizonTemplateView):
     def get(self, request, **response_kwargs):
@@ -190,15 +190,31 @@ class ExporttemplateView(forms.ModalFormMixin, views.HorizonTemplateView):
         response['Content-Length'] = len(data.encode('utf8'))
         return response
 
-class LaunchStackView(forms.ModalFormView):
+class LaunchDraftView(forms.ModalFormView):
     template_name = 'project/customize_stack/launch.html'
     modal_header = _("Launch Stack")
-    form_id = "launch_stack"
-    form_class = project_forms.LaunchStackForm
+    form_id = "launch_draft"
+    form_class = project_forms.LaunchDraftForm
     submit_label = _("Launch")
-    submit_url = reverse_lazy("horizon:project:customize_stack:launch_stack")
+    submit_url = reverse_lazy("horizon:project:customize_stack:launch_draft")
     success_url = reverse_lazy('horizon:project:stacks:index')
     page_title = _("Launch Stack")
+
+class LaunchTemplateView(LaunchDraftView):
+    form_id = "launch_template"
+    form_class = project_forms.LaunchTemplateForm
+    submit_url = ("horizon:project:customize_stack:launch_template")
+    
+    def get_context_data(self, **kwargs):
+        context = super(LaunchTemplateView, self).get_context_data(**kwargs)
+        args = (self.kwargs['template_name'],)
+        context['submit_url'] = reverse(self.submit_url, args=args)
+        return context
+    
+    def get_form_kwargs(self):
+        kwargs = super(LaunchTemplateView, self).get_form_kwargs()
+        kwargs['template_name'] = self.kwargs['template_name']
+        return kwargs
 
 class SaveDraftView(forms.ModalFormView):
     template_name = 'project/customize_stack/save.html'

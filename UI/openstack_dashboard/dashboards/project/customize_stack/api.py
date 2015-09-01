@@ -18,8 +18,8 @@ from horizon import messages
 from django.forms import ValidationError  # noqa
 
 # file_path = "/etc/openstack-dashboard/cstack.data"
-file_path = "/tmp/heat/%(user)s"
-dirname = '/tmp/heat/templates'
+# file_path = "/tmp/heat/%(user)s"
+# dirname = '/tmp/heat/templates'
 
 LOG = logging.getLogger(__name__)
 # mutex = threading.Lock()
@@ -47,104 +47,102 @@ class Mutex(object):
 mutex = Mutex()
 
 def validate_template_name(value):
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    if value in os.listdir(dirname):
+    dirname = get_store_dir()
+    names = os.listdir(dirname)
+    valid = True
+    for name in names:
+        if (os.path.isdir(os.path.join(dirname, name))):
+            if value == name:
+                valid = False
+                break
+    if not valid:
         raise ValidationError('A template named as %s already exists.' % value)
-    
+
+def get_store_dir():
+    store_dirname = '/tmp/heat/templates'
+    if not os.path.exists(store_dirname):
+        os.makedirs(store_dirname)
+    return store_dirname
+
+def get_template_dir(template_name):
+    template_dirname = os.path.join(get_store_dir(), template_name)
+    if not os.path.exists(template_dirname):
+        os.makedirs(template_dirname)
+    return template_dirname
+
 def get_templates():
     templates = []
-    dirname = '/tmp/heat/templates'
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
+    dirname = get_store_dir()
     names = os.listdir(dirname)
     for name in names:
-        template = {
-            'name': name
-        }
-        templates.append(template)
+        if (os.path.isdir(os.path.join(dirname, name))):
+            template = {
+                'name': name
+            }
+            templates.append(template)
     return templates;
 
-def save_template(user, template_name, canvas_data):
-    file_name = os.path.join(dirname, template_name)
+def save_template(template_name, canvas_data):
+    file_name = os.path.join(get_template_dir(template_name), 'template')
     resources = json.loads(canvas_data)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    if mutex.acquire(user):
-        f = open(file_name, 'wb')
-        pickle.dump(resources, f)
-        f.close()
-        mutex.release(user)
+    f = open(file_name, 'wb')
+    pickle.dump(resources, f)
+    f.close()
 
 def delete_template(user, template_name):
-    file_name = os.path.join(dirname, template_name)
+    dir_name = get_template_dir(template_name)
     if mutex.acquire(user):
-        os.remove(file_name)
+        for f in [ff for ff in os.listdir(dir_name)]:
+            os.remove(os.path.join(dir_name, f))
+        os.removedirs(dir_name)
         mutex.release(user)
 
-def clean_template_folder(user, only_template=False):
-    dirname = file_path % {'user': user}
-    file_name = os.path.join(dirname, 'cstack.data')
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    if os.path.isfile(file_name):
-        if mutex.acquire(user):
-            LOG.info('Clear the draft template.')
-            if not only_template:
-                for f in [ff for ff in os.listdir(dirname)]:
-                    os.remove(os.path.join(dirname, f))
-            f = open(file_name, 'wb')
-            pickle.dump([], f)
-            f.close()
-            mutex.release(user)
+# def clean_template_folder(user, only_template=False):
+#     dirname = file_path % {'user': user}
+#     file_name = os.path.join(dirname, 'cstack.data')
+#     if not os.path.exists(dirname):
+#         os.makedirs(dirname)
+#     if os.path.isfile(file_name):
+#         if mutex.acquire(user):
+#             LOG.info('Clear the draft template.')
+#             if not only_template:
+#                 for f in [ff for ff in os.listdir(dirname)]:
+#                     os.remove(os.path.join(dirname, f))
+#             f = open(file_name, 'wb')
+#             pickle.dump([], f)
+#             f.close()
+#             mutex.release(user)
 
 def _get_resources_from_file(user, template_name=None):
-    if template_name is not None:
-        dirname = '/tmp/heat/templates'
-        file_name = os.path.join(dirname, template_name)
-    else:
-        dirname = file_path % {'user': user}
-        file_name = os.path.join(dirname, 'cstack.data')
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    if os.path.isfile(file_name):
-        if mutex.acquire(user):
-            f = open(file_name, 'rb')
-            resources = pickle.load(f)
-#            LOG.info('Exsisting resources are %s' % resources)
-            f.close()
-            mutex.release(user)
-    else:
-        LOG.info('Could not find draft template file %s' % file_name)
-        resources = []
+    if not template_name:
+        return []
+    file_name = os.path.join(get_template_dir(template_name), 'template')
+    if mutex.acquire(user):
+        f = open(file_name, 'rb')
+        resources = pickle.load(f)
+        f.close()
+        mutex.release(user)
     return resources
 
-
-def _load_files_from_folder(user):
-    dirname = file_path % {'user': user}
+def _load_files_from_folder(template_name):
+    dirname = get_template_dir(template_name)
     ret = {}
-    filelist = [os.path.join(dirname, ff)
-                    for ff in os.listdir(dirname)
-                    if ff != 'cstack.data']
-    for ff in filelist:
-        f = open(ff, 'r')
-        content = f.read()
-        f.close()
-        ret['file://'+ff] = content
+    for file_name in os.listdir(dirname):
+        if file_name != 'template':
+            file = open(os.path.join(dirname, file_name), 'r')
+            content = file.read()
+            file.close()
+            ret[file_name] = content
     return ret
 
 
-def save_user_file(user, file):
-    dirname = file_path % {'user': user}
-    file_name = os.path.join(dirname, file.name)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    if mutex.acquire(user):
-        f = open(file_name, 'wb')
-        f.write(file.read())
-        f.close()
-        mutex.release(user)
-    return file_name
+def save_user_file(template_name, files):
+    dirname = get_template_dir(template_name)
+    for file_name in files:
+        file_path = os.path.join(dirname, file_name)
+        file = open(file_path, 'wb')
+        file.write(files[file_name].read())
+        file.close()
 
 # def get_resource_names(request, template_name=None):
 #     resource_names = []
@@ -295,7 +293,8 @@ def _generate_template(resources):
         dependson = resource.get('depends_on')
         if dependson:
             del resource['depends_on']
-            temp_res[res_name]['depends_on'] = dependson
+            if dependson != 'None':
+                temp_res[res_name]['depends_on'] = dependson
 
         for key, value in resource.items():
             if value:
@@ -313,10 +312,11 @@ def get_template_content(request, template_name=None):
     return json.dumps(template, indent=4)
     
     
-def launch_stack(request, stack_name, enable_rollback, timeout):
-    resources = _get_resources_from_file(request.user.id)
+def launch_draft(request, stack_name, enable_rollback, timeout, canvas_data):
+    resources = json.loads(canvas_data)
     template = _generate_template(resources)
     files = _load_files_from_folder(request.user.id)
+#     files = {}
     fields = {
             'stack_name': stack_name,
             'timeout_mins': timeout,
@@ -328,11 +328,28 @@ def launch_stack(request, stack_name, enable_rollback, timeout):
     try:
         heat.stack_create(request, **fields)
         messages.success(request, _("Stack creation started."))
-        clean_template_folder(request.user.id)
         return True
     except Exception:
         exceptions.handle(request)
-
+ 
+def launch_template(request, stack_name, enable_rollback, timeout, template_name):
+    resources = _get_resources_from_file(request.user.id, template_name)
+    template = _generate_template(resources)
+    files = _load_files_from_folder(template_name)
+    fields = {
+            'stack_name': stack_name,
+            'timeout_mins': timeout,
+            'disable_rollback': not(enable_rollback),
+            'password': None,
+            'template': template,
+            'files': files,
+        }
+    try:
+        heat.stack_create(request, **fields)
+        messages.success(request, _("Stack creation started."))
+        return True
+    except Exception:
+        exceptions.handle(request)
 
 def export_template(request):
     resources = _get_resources_from_file(request.user.id)

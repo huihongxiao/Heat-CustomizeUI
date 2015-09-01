@@ -227,9 +227,9 @@ horizon.addInitFunction(horizon.modals.init = function() {
       }
     }
 
-    if (form_id.substring(0,10)=='heat_save_') {
-      formData.append('canvas_data', cs_get_canvas_data());
+    if (form_id.substring(0,10)=='heat_save_' || form_id == 'launch_draft') {
       var attached_files = cs_get_files();
+      formData.append('canvas_data', cs_get_canvas_data());
       for(file_name in attached_files) {
         formData.append(file_name, attached_files[file_name]);
       }

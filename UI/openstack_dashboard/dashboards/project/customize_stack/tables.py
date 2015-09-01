@@ -43,28 +43,19 @@ class EditTemplate(tables.LinkAction):
         return True
  
 class LaunchTemplate(tables.LinkAction):
-    name = "launch_image"
+    name = "launch_template"
     verbose_name = _("Launch Stack")
-    url = "horizon:project:instances:launch"
+    url = "horizon:project:customize_stack:launch_template"
     classes = ("ajax-modal", "btn-launch")
     icon = "cloud-upload"
     policy_rules = (("compute", "compute:create"),)
 
     def get_link_url(self, datum):
-        base_url = reverse(self.url)
-
-#         if get_image_type(datum) == "image":
-        source_type = "image_id"
-#         else:
-#             source_type = "instance_snapshot_id"
-
-        params = urlencode({"source_type": source_type,
-                            "source_id": self.table.get_object_id(datum)})
-        return "?".join([base_url, params])
+        args = (datum.get('name'),)
+        base_url = reverse(self.url, args=args)
+        return base_url
 
     def allowed(self, request, image=None):
-#         if image and image.container_format not in NOT_LAUNCHABLE_FORMATS:
-#             return image.status in ("active",)
         return True
 
 class DeleteTemplate(tables.DeleteAction):
