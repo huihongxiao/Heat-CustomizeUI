@@ -129,8 +129,9 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         fields = self.res_cls.generate_prop_fields(params)
         for key, value in fields.items():
             self.fields[key] = value
+
     def clean(self, **kwargs):
-        data = super(ModifyResourceForm, self).clean()
+        data = super(ModifyResourceForm, self).clean(**kwargs)
         if json.loads(self.data.get('res_name_dup')):
             raise ValidationError(
                     _("There is already a resource with the same name.")) 
@@ -226,11 +227,23 @@ class SaveTemplateForm(forms.SelfHandlingForm):
 
     def handle(self, request, data):
         project_api.save_template(self.template_name, self.data['canvas_data'])
+        project_api.save_user_file(self.template_name, request.FILES)
+        project_api.remove_useless_files(self.template_name, self.data['canvas_data'])
         return True
 
 class SaveTemplateAsForm(SaveDraftForm):
+    def __init__(self, *args, **kwargs):
+        self.template_name = kwargs.pop('template_name')
+        super(SaveTemplateAsForm, self).__init__(*args, **kwargs)
+    
     class Meta(object):
         name = _('Save As')
+    
+    def handle(self, request, data):
+        super(SaveTemplateAsForm, self).handle(request, data)
+        project_api.transfer_files(self.template_name, data.get('template_name'))
+        project_api.remove_useless_files(self.template_name, self.data['canvas_data'])
+        return True
 
 class DynamicListForm(forms.SelfHandlingForm):
     class Meta(object):

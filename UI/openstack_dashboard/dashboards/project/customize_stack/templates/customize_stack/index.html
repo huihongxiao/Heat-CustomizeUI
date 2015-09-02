@@ -11,7 +11,7 @@
   {% if name %}
   <a href="{% url 'horizon:project:customize_stack:launch_template' name%}" id="cus_stack__action_launch_template" class="btn btn-default btn-sm btn-launch ajax-modal"><span class="fa fa-cloud-upload"></span>{% trans " Launch"%}</a>
   <a href="{% url 'horizon:project:customize_stack:save_template' name %}" id="cus_stack__action_save_template" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-save"></span>{% trans " Save"%}</a>
-  <a href="{% url 'horizon:project:customize_stack:save_template_as' %}" id="cus_stack__action_save_template_as" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-save"></span>{% trans " Save As"%}</a>
+  <a href="{% url 'horizon:project:customize_stack:save_template_as' name%}" id="cus_stack__action_save_template_as" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-save"></span>{% trans " Save As"%}</a>
   {% else %}
   <a href="{% url 'horizon:project:customize_stack:launch_draft' %}" id="cus_stack__action_launch_draft" class="btn btn-default btn-sm btn-launch ajax-modal"><span class="fa fa-cloud-upload"></span>{% trans " Launch"%}</a>
   <a href="{% url 'horizon:project:customize_stack:save_draft' %}" id="cus_stack__action_save_draft" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-save"></span>{% trans " Save"%}</a>

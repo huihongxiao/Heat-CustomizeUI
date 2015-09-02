@@ -247,25 +247,15 @@ class SaveTemplateView(forms.ModalFormView):
         kwargs['template_name'] = self.kwargs['template_name']
         return kwargs
 
-class SaveTemplateAsView(forms.ModalFormView):
+class SaveTemplateAsView(SaveTemplateView):
     template_name = 'project/customize_stack/save_as.html'
     modal_header = _("Save Template As")
     form_id = "heat_save_template_as"
     form_class = project_forms.SaveTemplateAsForm
     submit_label = _("Save")
-    submit_url = reverse_lazy("horizon:project:customize_stack:save_template_as")
+    submit_url = ("horizon:project:customize_stack:save_template_as")
     success_url = reverse_lazy('horizon:project:customize_stack:index')
     page_title = _("Save Template As")
-
-# class ClearCanvasView(forms.ModalFormView):
-#     template_name = 'project/customize_stack/clear.html'
-#     modal_header = _("Clear Canvas")
-#     form_id = "clear_canvas"
-#     form_class = project_forms.ClearCanvasForm
-#     submit_label = _("Confirm")
-#     submit_url = reverse_lazy("horizon:project:customize_stack:clear_canvas")
-#     success_url = reverse_lazy('horizon:project:customize_stack:index')
-#     page_title = _("Clear Canvas")
 
 class JSONView(django.views.generic.View):
     template_name = None

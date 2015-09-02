@@ -97,22 +97,6 @@ def delete_template(user, template_name):
         os.removedirs(dir_name)
         mutex.release(user)
 
-# def clean_template_folder(user, only_template=False):
-#     dirname = file_path % {'user': user}
-#     file_name = os.path.join(dirname, 'cstack.data')
-#     if not os.path.exists(dirname):
-#         os.makedirs(dirname)
-#     if os.path.isfile(file_name):
-#         if mutex.acquire(user):
-#             LOG.info('Clear the draft template.')
-#             if not only_template:
-#                 for f in [ff for ff in os.listdir(dirname)]:
-#                     os.remove(os.path.join(dirname, f))
-#             f = open(file_name, 'wb')
-#             pickle.dump([], f)
-#             f.close()
-#             mutex.release(user)
-
 def _get_resources_from_file(user, template_name=None):
     if not template_name:
         return []
@@ -144,13 +128,34 @@ def save_user_file(template_name, files):
         file.write(files[file_name].read())
         file.close()
 
-# def get_resource_names(request, template_name=None):
-#     resource_names = []
-#     resources = _get_resources_from_file(request.user.id, template_name)
-#     for resource in resources:
-#         resource_names.append(resource['resource_name'])
-#     return resource_names
+def remove_useless_files(template_name, canvas_data):
+    resources = json.loads(canvas_data)
+    valid_files = []
+    for resource in resources:
+        for item in resource:
+            if 'get_file' in resource[item]:
+                eval(resource[item])
+                valid_files.append(eval(resource[item])['get_file'])
+    dirname = get_template_dir(template_name)
+    names = os.listdir(dirname)
+    for name in names:
+        if not name in valid_files and name != 'template':
+            os.remove(os.path.join(dirname, name))
 
+def transfer_files(from_tml_name, to_tml_name):
+    from_dir = get_template_dir(from_tml_name)
+    to_dir = get_template_dir(to_tml_name)
+    file_names = os.listdir(from_dir)
+    for file_name in file_names:
+        if file_name != 'tempalte':
+            from_path = os.path.join(from_dir, file_name)
+            from_file = open(from_path, 'rb')
+            to_path = os.path.join(to_dir, file_name)
+            to_file = open(to_path, 'wb')
+            to_file.write(from_file.read())
+            from_file.close()
+            to_file.close()
+    
 def get_draft_template(request, template_name=None):
     resources = _get_resources_from_file(request.user.id, template_name)
     d3_data = {"nodes": []}
