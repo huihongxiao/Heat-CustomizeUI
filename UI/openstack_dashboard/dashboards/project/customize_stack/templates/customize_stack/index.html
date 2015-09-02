@@ -6,13 +6,14 @@
 </noscript>
 <div class="topologyNavi">
   <a href="{% url 'horizon:project:customize_stack:select_resource' %}" id="cus_stack__action_add" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-plus"></span>{% trans " Add Resource"%}</a>
-  <a href="{% url 'horizon:project:customize_stack:export_template' %}" id="cus_stack__export" class="btn btn-default btn-sm"><span class="fa fa-download"></span>{% trans " Export"%}</a>
   <a href="javascript:cs_clear()" id="cus_stack__action_clear" class="btn btn-default btn-sm cs-simple-btn"><span class="fa fa-eraser"></span>{% trans " Clear"%}</a>
   {% if name %}
+  <a href="{% url 'horizon:project:customize_stack:export_template' name%}" id="cus_stack__export" class="btn btn-default btn-sm"><span class="fa fa-download"></span>{% trans " Export"%}</a>
   <a href="{% url 'horizon:project:customize_stack:launch_template' name%}" id="cus_stack__action_launch_template" class="btn btn-default btn-sm btn-launch ajax-modal"><span class="fa fa-cloud-upload"></span>{% trans " Launch"%}</a>
   <a href="{% url 'horizon:project:customize_stack:save_template' name %}" id="cus_stack__action_save_template" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-save"></span>{% trans " Save"%}</a>
   <a href="{% url 'horizon:project:customize_stack:save_template_as' name%}" id="cus_stack__action_save_template_as" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-save"></span>{% trans " Save As"%}</a>
   {% else %}
+  <a href="{% url 'horizon:project:customize_stack:export_draft' %}" id="cus_stack__export" class="btn btn-default btn-sm"><span class="fa fa-download"></span>{% trans " Export"%}</a>
   <a href="{% url 'horizon:project:customize_stack:launch_draft' %}" id="cus_stack__action_launch_draft" class="btn btn-default btn-sm btn-launch ajax-modal"><span class="fa fa-cloud-upload"></span>{% trans " Launch"%}</a>
   <a href="{% url 'horizon:project:customize_stack:save_draft' %}" id="cus_stack__action_save_draft" class="btn btn-default btn-sm ajax-modal"><span class="fa fa-save"></span>{% trans " Save"%}</a>
   {% endif %}

@@ -21,7 +21,8 @@ urlpatterns = patterns(
     url(r'^launch_draft$', views.LaunchDraftView.as_view(), name='launch_draft'),
     url(r'^launch_template/(?P<template_name>[^/]+)/', views.LaunchTemplateView.as_view(), name='launch_template'),
 #     url(r'^delete_resource$', views.DeleteResourceView.as_view(), name='delete_resource'),
-    url(r'^export_template$', views.ExporttemplateView.as_view(), name='export_template'),
+    url(r'^export_draft$', views.ExportDraftView.as_view(), name='export_draft'),
+    url(r'^export_template/(?P<template_name>[^/]+)/$', views.ExportTemplateView.as_view(), name='export_template'),
     url(r'^add_item/(?P<resource_type>[^/]+)/(?P<property>[^/]+)/$', views.DynamicListView.as_view(), name='add_item'),
     url(r'^edit_item/(?P<resource_type>[^/]+)/(?P<property>[^/]+)/$', views.EditDynamicListView.as_view(), name='edit_item'),
 )

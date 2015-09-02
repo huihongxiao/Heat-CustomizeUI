@@ -41,8 +41,8 @@ class AutoScalingGroup(resources.BaseResource):
         if name == 'resource':
             files = self.request.FILES
             if files.get('resource'):
-                path = self.save_user_file(files.get('resource'))
-                return name, path
+                file_name = files.get('resource').name.encode('iso8859-1')
+                return name, {'get_file': file_name}
             else:
                 return None, None
         else:

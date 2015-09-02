@@ -63,11 +63,15 @@ function cs_clear() {
 }
 
 function cs_get_canvas_data() {
+  return(JSON.stringify(cs_get_resources));
+}
+
+function cs_get_resources() {
   var resources = [];
   $.each(nodes, function(i, node) {
     resources.push(node.details);
   });
-  return(JSON.stringify(resources));
+  return resources;
 }
 
 function cs_get_files() {
@@ -397,12 +401,35 @@ function zoomed() {
     }
 } 
 
+function cs_get_filer_options(widget, type) {
+  var resources = cs_get_resources(),
+    option;
+  $.each(resources, function(i, resource) {
+    if (resource.resource_type == type) {
+      option = $('<option></option>');
+      option.html(resource.resource_name);
+      option.attr('value', "{'get_resource': '"+resource.resource_name+"'}");
+      widget.append(option);
+    }
+  });
+}
+
 var form_init = function(modal) {
   var form = $(modal).find('form'),
     dependancy = form.find('#id_depends_on'),
-    option;
+    option,
+    server = form.find('#id_server'),
+    config = form.find('#id_config');
   if (!form) {
     return;
+  }
+  if (form.attr('id') == 'modify_resource' || form.attr('id') == 'edit_resource') {
+    if (server) {
+      cs_get_filer_options(server, 'OS::Nova::Server');
+    }
+    if (config) {
+      cs_get_filer_options(config, 'OS::Heat::SoftwareConfig');
+    }
   }
   if (form.attr('id') == 'modify_resource') {
     if (dependancy) {

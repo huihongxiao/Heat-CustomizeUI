@@ -34,8 +34,8 @@ class SoftwareConfig(resources.BaseResource):
         if name == 'config':
             files = self.request.FILES
             if files.get('config'):
-                path = self.save_user_file(files.get('config'))
-                return name, {'get_file': 'file://' + path}
+                file_name = files.get('config').name.encode('iso8859-1')
+                return name, {'get_file': file_name}
             else:
                 return None, None
         else:
