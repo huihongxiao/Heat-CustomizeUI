@@ -64,7 +64,8 @@ class ScalingPolicy(resources.BaseResource):
         if prop_name == 'auto_scaling_group_id':
             choices = self.filter_resource(['OS::Heat::AutoScalingGroup'])
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Heat::AutoScalingGroup'
+            field = resources.FilterField(**field_args)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
         return field

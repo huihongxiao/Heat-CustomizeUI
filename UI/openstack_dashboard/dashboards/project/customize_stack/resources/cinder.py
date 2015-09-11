@@ -28,11 +28,13 @@ class VolumeAttachment(resources.BaseResource):
         if prop_name == 'instance_uuid':
             choices = self.filter_resource(['OS::Nova::Server'])
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Nova::Server'
+            field = resources.FilterField(**field_args)
         elif prop_name == 'volume_id':
             choices = self.filter_resource(['OS::Cinder::Volume'])
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Cinder::Volume'
+            field = resources.FilterField(**field_args)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
 

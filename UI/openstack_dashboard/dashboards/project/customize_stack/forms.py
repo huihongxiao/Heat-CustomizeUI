@@ -151,7 +151,10 @@ class EditResourceForm(ModifyResourceForm):
 
     def handle(self, request, data, **kwargs):
         original_name = data.pop('original_name')
+        files_names = json.loads(self.data['file_widget_content'])
         res_data = self.res_cls.generate_res_data(data)
+        for widget in files_names:
+            res_data[widget] = files_names[widget]
         d3_data = project_api.gen_resource_d3_data(res_data)
         d3_data['original_name'] = original_name
         return json.dumps(d3_data)
@@ -190,6 +193,20 @@ class LaunchTemplateForm(LaunchDraftForm):
     
     def handle(self, request, data):
         project_api.launch_template(request, data.get('stack_name'), data.get('enable_rollback'), data.get('timeout_mins'), self.template_name)
+        return True
+
+class ContentForm(forms.SelfHandlingForm):
+    template_name = forms.RegexField(
+        max_length=255,
+        label=_('Template Name'),
+        help_text=_('Name of the template to save as.'),
+        regex=r"^[a-zA-Z][a-zA-Z0-9_.-]*$",
+        error_messages={'invalid':
+                        _('Name must start with a letter and may '
+                          'only contain letters, numbers, underscores, '
+                          'periods and hyphens.')},
+        validators=[project_api.validate_template_name])
+    def handle(self, request, data):
         return True
 
 class SaveDraftForm(forms.SelfHandlingForm):
@@ -269,6 +286,7 @@ class DynamicListForm(forms.SelfHandlingForm):
         self.prop_schema = self._get_property_schema(request, self.resource_type, self.property)
         schema = self.prop_schema.get('schema', None)
         if schema:
+            print schema
             fields = self.res_cls.generate_prop_fields(schema['*']['schema'])
             for key, value in fields.items():
                 self.fields[key] = value
@@ -277,8 +295,15 @@ class DynamicListForm(forms.SelfHandlingForm):
 
     def handle(self, request, data):
         dt = data.get(self.property, data)
+        tt = {}
         if isinstance(dt, dict):
-            tt = dict((k, v) for k, v in dt.items() if v)
+            for key, value in sorted(data.items()):
+                if value or value == False:
+                    try:
+                        val = eval(value)
+                    except Exception:
+                        val = value
+                    tt[key] = val
             return json.dumps(tt)
         else:
             return dt

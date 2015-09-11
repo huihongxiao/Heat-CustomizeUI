@@ -39,11 +39,13 @@ class Server(resources.BaseResource):
             choices = (self._populate_network_choices() +
                        self.filter_resource(['OS::Neutron::Net']))
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Neutron::Net'
+            field = resources.FilterField(**field_args)
         elif prop_name == 'port':
             choices = self.filter_resource(['OS::Neutron::Port'], True)
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Neutron::Port'
+            field = resources.FilterField(**field_args)
         elif prop_name == 'availability_zone':
             choices = self._populate_availabilityzone_choices()
             field_args['choices'] = choices
@@ -73,6 +75,9 @@ class Server(resources.BaseResource):
             if files.get('user_data'):
                 file_name = files.get('user_data').name.encode('iso8859-1')
                 return name, {'get_file': file_name}
+#             elif self.data.get('user_data'):
+#                 print value
+#                 return name, value
             else:
                 return None, None
         else:

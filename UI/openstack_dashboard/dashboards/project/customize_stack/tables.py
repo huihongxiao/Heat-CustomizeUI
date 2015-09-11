@@ -209,7 +209,7 @@ class TemplatesTable(tables.DataTable):
         name = "templates"
         row_class = UpdateRow
 #         status_columns = ["status"]
-        verbose_name = _("Templates")
+        verbose_name = _("Stack Planning")
         table_actions = (CreateTemplate, DeleteTemplate,)
 #         table_actions = ()
         launch_actions = ()

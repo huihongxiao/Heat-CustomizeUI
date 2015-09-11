@@ -25,13 +25,23 @@ from django.utils.safestring import mark_safe
 
 class DependancyField(forms.ChoiceField):
 
-    def __init__(self, choices=(), required=True, widget=None, label=None,
+    def __init__(self, choices=(), required=False, widget=None, label=None,
                  initial=None, help_text='', *args, **kwargs):
         label=_('Select the resource to depend on')
-        required=False
         super(DependancyField, self).__init__(required=required, widget=widget, label=label,
             initial=initial, help_text=help_text, *args, **kwargs)
    
+    def valid_value(self, value):
+        return True
+
+class FilterField(forms.ChoiceField):
+
+    def __init__(self, choices=(), required=False, widget=None, label=None,
+                 initial=None, help_text='', filter='', *args, **kwargs):
+        widget = forms.Select(attrs = {'filter': filter})
+        super(FilterField, self).__init__(choices=choices, required=required, widget=widget,
+             label=label, initial=initial, help_text=help_text, *args, **kwargs)
+
     def valid_value(self, value):
         return True
 

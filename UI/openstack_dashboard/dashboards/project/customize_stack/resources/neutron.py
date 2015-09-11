@@ -22,7 +22,8 @@ class FloatingIP(resources.BaseResource):
             choices = self.filter_resource(['OS::Neutron::Port'],
                                            include_empty=True)
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Neutron::Port'
+            field = resources.FilterField(**field_args)
         elif prop_name == 'floating_network':
             choices = self._populate_network_choices()
             field_args['choices'] = choices
@@ -47,11 +48,13 @@ class FloatingIPAssociation(resources.BaseResource):
         if prop_name == 'port_id':
             choices = self.filter_resource(['OS::Neutron::Port'])
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Neutron::Port'
+            field = resources.FilterField(**field_args)
         elif prop_name == 'floatingip_id':
             choices = self.filter_resource(['OS::Neutron::FloatingIP'])
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Neutron::FloatingIP'
+            field = resources.FilterField(**field_args)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
         return field
@@ -125,7 +128,8 @@ class LoadBalancer(resources.BaseResource):
         if prop_name == 'pool_id':
             choices = self.filter_resource(['OS::Neutron::Pool'])
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Neutron::Pool'
+            field = resources.FilterField(**field_args)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
         return field
@@ -147,7 +151,8 @@ class Pool(resources.BaseResource):
         if prop_name == 'subnet':
             choices = self.filter_resource(['OS::Neutron::Subnet'])
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Neutron::Subnet'
+            field = resources.FilterField(**field_args)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
         return field

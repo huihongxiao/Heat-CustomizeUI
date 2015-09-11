@@ -56,11 +56,13 @@ class SoftwareDeployment(resources.BaseResource):
         if prop_name == 'server':
             choices = self.filter_resource(['OS::Nova::Server'])
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Nova::Server'
+            field = resources.FilterField(**field_args)
         elif prop_name == 'config':
             choices = self.filter_resource(['OS::Heat::SoftwareConfig'])
             field_args['choices'] = choices
-            field = self.forms.ChoiceField(**field_args)
+            field_args['filter'] = 'OS::Heat::SoftwareConfig'
+            field = resources.FilterField(**field_args)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
         return field

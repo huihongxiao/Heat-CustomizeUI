@@ -147,7 +147,7 @@ def transfer_files(from_tml_name, to_tml_name):
     to_dir = get_template_dir(to_tml_name)
     file_names = os.listdir(from_dir)
     for file_name in file_names:
-        if file_name != 'tempalte':
+        if file_name != 'template':
             from_path = os.path.join(from_dir, file_name)
             from_file = open(from_path, 'rb')
             to_path = os.path.join(to_dir, file_name)
@@ -304,7 +304,7 @@ def _generate_template(resources):
         for key, value in resource.items():
             if value:
                 try:
-                    val = json.loads(value)
+                    val = eval(value)
                 except Exception:
                     val = value
                 temp_res[res_name]['properties'][key] = val

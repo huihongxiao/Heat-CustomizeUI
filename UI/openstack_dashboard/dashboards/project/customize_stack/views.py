@@ -11,6 +11,9 @@ from django.core.urlresolvers import reverse_lazy
 from django.http import HttpResponse  # noqa
 from django.utils.translation import ugettext_lazy as _
 import django.views.generic
+from django.template import Template, Context
+from django.shortcuts import render_to_response
+from django.template import RequestContext
 
 from horizon import exceptions
 from horizon import forms
@@ -35,7 +38,7 @@ LOG = logging.getLogger(__name__)
 class TableView(tables.DataTableView):
     table_class = project_tables.TemplatesTable
     template_name = 'project/customize_stack/table.html'
-    page_title = _("Templates")
+    page_title = _("Stack Planning")
 
     def has_prev_data(self, table):
         return getattr(self, "_prev_%s" % table.name, False)
@@ -288,26 +291,17 @@ class JSONView(django.views.generic.View):
             self.template_name = kwargs.pop('template_name')
         return handler(request, *args, **kwargs)
 
-# class DeleteResourceView(forms.ModalFormView):
-#     template_name = 'project/customize_stack/delete.html'
-#     modal_header = _("Delete Resource")
-#     form_id = "delete_resource"
-#     form_class = project_forms.DeleteResourceForm
-#     submit_label = _("Confirm")
-#     submit_url = "horizon:project:customize_stack:delete_resource"
-#     success_url = reverse_lazy('horizon:project:customize_stack:index')
-#     page_title = _("Delete Resource")
-# 
-#     def get_context_data(self, **kwargs):
-#         context = super(DeleteResourceView, self).get_context_data(**kwargs)
-#         args = (self.kwargs['resource_name'],)
-#         context['submit_url'] = reverse(self.submit_url, args=args)
-#         return context
-# 
-#     def get_form_kwargs(self):
-#         kwargs = super(DeleteResourceView, self).get_form_kwargs()
-#         kwargs['resource_name'] = self.kwargs['resource_name']
-#         return kwargs
+def get_content(request):
+    if request.method == 'POST':
+        resources = json.loads(request.POST['canvas_data'])
+        template = project_api._generate_template(resources)
+        return HttpResponse(json.dumps(template, indent=4), content_type="application/json")
+    else:
+        t = Template('<form action="/project/customize_stack/get_content" method="post" id="cs_content_form">  {% csrf_token %}</form>')
+        html = t.render(Context())
+        
+        return render_to_response('project/customize_stack/_content.html', {
+            }, context_instance=RequestContext(request))
 
 class DynamicListView(forms.ModalFormView):
     template_name = 'project/customize_stack/additem.html'

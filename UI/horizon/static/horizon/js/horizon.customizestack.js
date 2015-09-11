@@ -93,6 +93,19 @@ function cs_add_attached_files(resource_name) {
   });
 }
 
+function cs_file_selected() {
+  return file_selected;
+}
+
+function cs_get_file_widget_content() {
+  var files = {};
+  $.each($('input[type="file"]'), function(i, widget) {
+    var name = $(widget).attr('name');
+    files[name] = findNode(node_selected).details[name]
+  })
+  return JSON.stringify(files);
+}
+
 function del_items(name) {
   var id; 
   id = 'id_' + name;
@@ -410,7 +423,7 @@ function zoomed() {
     }
 } 
 
-function cs_get_filer_options(widget, type) {
+function cs_get_filter_options(widget, type) {
   var resources = cs_get_resources(),
     option;
   $.each(resources, function(i, resource) {
@@ -427,18 +440,15 @@ var form_init = function(modal) {
   var form = $(modal).find('form'),
     dependancy = form.find('#id_depends_on'),
     option,
-    server = form.find('#id_server'),
-    config = form.find('#id_config');
+    filters;
   if (!form) {
     return;
   }
   if (form.attr('id') == 'modify_resource' || form.attr('id') == 'edit_resource') {
-    if (server) {
-      cs_get_filer_options(server, 'OS::Nova::Server');
-    }
-    if (config) {
-      cs_get_filer_options(config, 'OS::Heat::SoftwareConfig');
-    }
+    filters = form.find('select[filter]')
+    $.each(filters, function(i, filter) {
+      cs_get_filter_options($(filter), $(filter).attr('filter'));
+    });
   }
   if (form.attr('id') == 'modify_resource') {
     if (dependancy) {
@@ -457,6 +467,7 @@ var form_init = function(modal) {
   } else if (form.attr('id') == 'edit_resource') {
     var nodeName = $('#node_info h3:first').html(),
       paras = cs_findNode(nodeName).details, field, type;
+    file_selected = false;
     if (dependancy) {
       option = $('<option></option>')
       option.html('');
@@ -495,6 +506,7 @@ var form_init = function(modal) {
           spacer = $('<div class="cs_file_spacer"></div>');
           field.parent().append(spacer);
           field.change(function() {
+            file_selected = true;
             $(this).removeClass('cs_file_input');
             button.remove();
             name.remove();
@@ -505,6 +517,7 @@ var form_init = function(modal) {
         }
       } else if (field.is('select')) {
         if (field.attr('multiple') == 'multiple') {
+          field.html('');
           $.each(eval(paras[key]), function(i, item) {
             option = $('<option></option>')
             if (item instanceof Object) {
@@ -525,8 +538,18 @@ var form_init = function(modal) {
 }
 
 var dynamic_list_form_init = function(modal) {
-  var form = $(modal).find('form'), id, value, paras, field, type, option;
-  if (!form || form.attr('id') != 'edit_item') {
+  var form = $(modal).find('form'), id, value, paras, field, type, option,
+    filters;
+  if (!form) {
+    return;
+  }
+  if (form.attr('id') == 'add_item' || form.attr('id') == 'edit_item') {
+    filters = form.find('select[filter]')
+    $.each(filters, function(i, filter) {
+      cs_get_filter_options($(filter), $(filter).attr('filter'));
+    });
+  }
+  if (form.attr('id') != 'edit_item') {
     return;
   }
   id = '#id_' + form.attr('action').split('/')[5];
@@ -562,32 +585,58 @@ var dynamic_list_form_init = function(modal) {
     }
   } else {
     field = form.find(".form-group div").children();
-      type = field.attr('type');
-      if (field.is('input')) {
-        if (type == 'checkbox') {
-          field.prop('checked', value.toLowerCase()=='true'?true:false);
-        } else {
-          field.val(value);
-        }
-      } else if (field.is('select')) {
-        if (field.attr('multiple') == 'multiple') {
-          $.each(eval(value), function(i, item) {
-            option = $('<option></option>')
-            if (item instanceof Object) {
-              option.html(JSON.stringify(item));
-              option.attr('value', JSON.stringify(item));
-            } else {
-              option.html(item);
-              option.attr('value', item);
-            }
-            field.append(option);
-          });
-        } else {
-          field.val(value);
-        }
+    type = field.attr('type');
+    if (field.is('input')) {
+      if (type == 'checkbox') {
+        field.prop('checked', value.toLowerCase()=='true'?true:false);
+      } else {
+        field.val(value);
       }
+    } else if (field.is('select')) {
+      if (field.attr('multiple') == 'multiple') {
+        $.each(eval(value), function(i, item) {
+          option = $('<option></option>')
+          if (item instanceof Object) {
+            option.html(JSON.stringify(item));
+            option.attr('value', JSON.stringify(item));
+          } else {
+            option.html(item);
+            option.attr('value', item);
+          }
+          field.append(option);
+        });
+      } else {
+        field.val(value);
+      }
+    }
   }
+}
 
+var cs_get_content = function(tab) {
+  var ajax_url = '/project/customize_stack/get_content',
+    formData, form;
+  $.get(ajax_url, {}, function(data, textStatus, jqXHR) {
+      tab.append($(data));
+      
+    form = $('#cs_content_form'),
+    formData = new window.FormData(form[0]);
+    formData.append('canvas_data', cs_get_canvas_data());
+    $.ajax({
+      url: ajax_url,  
+      type: 'POST',
+      dataType: 'text',
+      processData: false,
+      contentType: false,
+      data: formData,
+      success: function(data, textStatus, jqXHR) {
+        tab.find(".data").html(data);
+      },
+      error: function (jqXHR) {
+        tab.find(".data").html('Failed to get content. You can try to refresh the page.');
+        $('a[data-target="#customizestack_tabs__content"]').attr('data-loaded', 'false');
+      }
+    });
+  });
 }
 
 if ($(cs_container).length){
@@ -637,7 +686,8 @@ if ($(cs_container).length){
     nodes = force.nodes(),
     links = force.links(),
     node_selected = null,
-    attached_files = {};
+    attached_files = {},
+    file_selected = null;
     
   svg.on("click", function() {
     if (node_selected) {
@@ -671,4 +721,5 @@ if ($(cs_container).length){
   });
   horizon.modals.addModalInitFunction(form_init);
   horizon.modals.addModalInitFunction(dynamic_list_form_init);
+  horizon.tabs.addTabLoadFunction(cs_get_content);
 }

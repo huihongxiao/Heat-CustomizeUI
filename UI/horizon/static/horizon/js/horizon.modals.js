@@ -240,6 +240,9 @@ horizon.addInitFunction(horizon.modals.init = function() {
         cs_add_attached_files($('#id_resource_name').val());
       }
       formData.append('res_name_dup', cs_check_dup(form_id));
+      if (form_id == 'edit_resource' || cs_file_selected()) {
+        formData.append('file_widget_content', cs_get_file_widget_content());
+      }
     }
 
     ajaxOpts = {
@@ -286,7 +289,6 @@ horizon.addInitFunction(horizon.modals.init = function() {
         } else if (add_to_field_header) {
           json_data = $.parseJSON(data);
           field_to_update = $("#" + add_to_field_header);
-          console.info(json_data);
           if (field_to_update.hasClass('dynamic_listbox')) {
             if (edit_option_index_header) {
               $(field_to_update.children()[edit_option_index_header]).after("<option value='" + json_data[0] + "'>" + json_data[1] + "</option>");
