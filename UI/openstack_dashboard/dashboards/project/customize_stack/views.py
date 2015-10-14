@@ -151,6 +151,8 @@ class EditResourceView(ModifyResourceView):
 
     def _get_resource_properties(self, request, resource_type):
         resource_properties = {}
+        if resource_type.endswith('.yaml'):
+            return resource_properties
         try:
             resource = api.heat.resource_type_get(request, resource_type)
             resource_properties = resource['properties']
@@ -192,20 +194,20 @@ class ExportTemplateView(forms.ModalFormMixin, views.HorizonTemplateView):
         response['Content-Disposition'] = 'attachment; filename="example.template"'
         response['Content-Length'] = len(data.encode('utf8'))
         return response
-
-class ExportDraftView(forms.ModalFormMixin, views.HorizonTemplateView):
-    def get(self, request, **response_kwargs):
-        data = project_api.export_template(request, self.kwargs['template_name'])
-        response = HttpResponse(data, content_type='application/text')
-        response['Content-Disposition'] = 'attachment; filename="example.template"'
-        response['Content-Length'] = len(data.encode('utf8'))
-    
-    def get_context_data(self, **kwargs):
-        context = super(LaunchTemplateView, self).get_context_data(**kwargs)
-        args = (self.kwargs['template_name'],)
-        context['submit_url'] = reverse(self.submit_url, args=args)
-        return context
-    
+# 
+# class ExportDraftView(forms.ModalFormMixin, views.HorizonTemplateView):
+#     def get(self, request, **response_kwargs):
+#         data = project_api.export_template(request, self.kwargs['template_name'])
+#         response = HttpResponse(data, content_type='application/text')
+#         response['Content-Disposition'] = 'attachment; filename="example.template"'
+#         response['Content-Length'] = len(data.encode('utf8'))
+#     
+#     def get_context_data(self, **kwargs):
+#         context = super(LaunchTemplateView, self).get_context_data(**kwargs)
+#         args = (self.kwargs['template_name'],)
+#         context['submit_url'] = reverse(self.submit_url, args=args)
+#         return context
+#     
 
 class LaunchDraftView(forms.ModalFormView):
     template_name = 'project/customize_stack/launch.html'

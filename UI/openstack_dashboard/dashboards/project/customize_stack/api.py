@@ -119,6 +119,25 @@ def _load_files_from_folder(template_name):
             ret[file_name] = content
     return ret
 
+def _load_netsed_files(request, resources):
+    file_names = []
+    files = {}
+    template_names = [template['name'] for template in get_templates()]
+    for resource in resources:
+        for key, value in resource.items():
+            if value and key == 'resource':
+                try:
+                    val = eval(value)
+                    file_names.append(val['type'][:-5])
+                except Exception as e:
+                    print e
+    for file_name in file_names:
+        print file_name
+        if file_name in template_names:
+            files[file_name] = get_template_content(request, file_name)
+            files.update(_load_files_from_folder(file_name))
+    print files
+    return files
 
 def save_user_file(template_name, files):
     dirname = get_template_dir(template_name)
@@ -321,7 +340,7 @@ def launch_draft(request, stack_name, enable_rollback, timeout, canvas_data):
     resources = json.loads(canvas_data)
     template = _generate_template(resources)
     files = _load_files_from_folder(request.user.id)
-#     files = {}
+    files.update(_load_netsed_files(request, resources))
     fields = {
             'stack_name': stack_name,
             'timeout_mins': timeout,
@@ -341,6 +360,7 @@ def launch_template(request, stack_name, enable_rollback, timeout, template_name
     resources = _get_resources_from_file(request.user.id, template_name)
     template = _generate_template(resources)
     files = _load_files_from_folder(template_name)
+    files.update(_load_netsed_files(request, resources))
     fields = {
             'stack_name': stack_name,
             'timeout_mins': timeout,

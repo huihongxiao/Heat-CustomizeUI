@@ -27,7 +27,8 @@ class DependancyField(forms.ChoiceField):
 
     def __init__(self, choices=(), required=False, widget=None, label=None,
                  initial=None, help_text='', *args, **kwargs):
-        label=_('Select the resource to depend on')
+        label=_('Depend on')
+        help_text=_('Select the resource to depend on')
         super(DependancyField, self).__init__(required=required, widget=widget, label=label,
             initial=initial, help_text=help_text, *args, **kwargs)
    
@@ -110,6 +111,17 @@ class DynamicListField(forms.MultipleChoiceField):
                     ret.append(item.encode('iso8859-1'))
         return jsonutils.dumps(ret)
     
+
+class TemplateField(forms.ChoiceField):
+
+    def __init__(self, required=True, widget=None, initial=None, *args, **kwargs):
+#         label=_('Select a template as the new resource')
+#         help_text=_('Select a template as the new resource')
+        choices = [(None,'')]
+        for template in project_api.get_templates():
+            choices.append((template['name']+'.yaml', template['name']))
+        super(TemplateField, self).__init__(required=required, widget=widget,
+            initial=initial, choices=choices, *args, **kwargs)
 
 class BaseResource(object):
 

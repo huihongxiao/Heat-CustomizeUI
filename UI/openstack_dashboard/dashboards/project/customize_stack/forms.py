@@ -80,6 +80,8 @@ class SelectResourceForm(forms.SelfHandlingForm):
 
     def _get_resource_type(self, request, resource_type):
         resource_properties = {}
+        if resource_type == 'template_resource':
+            return resource_properties
         try:
             resource = api.heat.resource_type_get(request, resource_type)
             resource_properties = resource['properties']
@@ -123,11 +125,15 @@ class ModifyResourceForm(forms.SelfHandlingForm):
         target_cls = resource_type_map.get(res_type, None)
         self.res_cls = target_cls(self.request)
         self._build_parameter_fields(parameters)
+        if res_type == 'template_resource' or res_type.endswith('.yaml'):
+            self.fields['resource_type'] = resources.TemplateField()
+            
 
     def _build_parameter_fields(self, params):
         self.fields['resource_type'].initial = params.pop('resource_type')
         fields = self.res_cls.generate_prop_fields(params)
         for key, value in fields.items():
+            print key, value
             self.fields[key] = value
 
     def clean(self, **kwargs):
@@ -139,7 +145,9 @@ class ModifyResourceForm(forms.SelfHandlingForm):
     
     def handle(self, request, data, **kwargs):
 #         data.pop('parameters')
+        print data
         res_data = self.res_cls.generate_res_data(data)
+        print json.dumps(project_api.gen_resource_d3_data(res_data))
         return json.dumps(project_api.gen_resource_d3_data(res_data))
 
 class EditResourceForm(ModifyResourceForm):

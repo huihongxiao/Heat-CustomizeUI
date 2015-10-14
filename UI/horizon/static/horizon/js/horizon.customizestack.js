@@ -246,7 +246,7 @@ function showBrief(d) {
 
 function showDetails(d) {
   var details = $('#node_info'),
-    seg;
+    seg, key;
 
   showBrief(d);
   for(var key in d) {
@@ -311,7 +311,7 @@ function cs_addNode (node) {
 
 function cs_editNode (d) {
   var current_node = cs_findNode(d['original_name']),
-    this_image;
+    this_image, key;
   delete d['original_name'];
   this_image = d3.select("#image_"+current_node.name);
   this_image.attr('id', "image_"+d.name);
@@ -466,7 +466,7 @@ var form_init = function(modal) {
     }
   } else if (form.attr('id') == 'edit_resource') {
     var nodeName = $('#node_info h3:first').html(),
-      paras = cs_findNode(nodeName).details, field, type;
+      paras = cs_findNode(nodeName).details, field, type, key;
     file_selected = false;
     if (dependancy) {
       option = $('<option></option>')
@@ -530,7 +530,11 @@ var form_init = function(modal) {
             field.append(option);
           });
         } else {
-          field.val(paras[key]);
+          if (paras[key].indexOf("{'type': u'") == 0) {
+            field.val(paras[key].slice(11, -2));
+          } else {
+            field.val(paras[key]);
+          }
         }
       }
     }
@@ -539,7 +543,7 @@ var form_init = function(modal) {
 
 var dynamic_list_form_init = function(modal) {
   var form = $(modal).find('form'), id, value, paras, field, type, option,
-    filters;
+    filters, key;
   if (!form) {
     return;
   }

@@ -24,14 +24,13 @@ class AutoScalingGroup(resources.BaseResource):
             'required': prop_data.get('required', False)
         }
         if prop_name == 'resource':
-            attributes = self._create_upload_form_attributes(
-                'resource',
-                'file',
-                _('Nested Template File'))
-            field = self.forms.FileField(
+#             attributes = self._create_upload_form_attributes(
+#                 'resource',
+#                 'file',
+#                 _('Nested Template File'))
+            field = resources.TemplateField(
                 label=_('Nested Template File'),
                 help_text=_('A template to upload.'),
-                widget=self.forms.FileInput(attrs=attributes),
                 required=True)
         else:
             field = self._handle_common_prop(prop_name, prop_data)
@@ -39,12 +38,7 @@ class AutoScalingGroup(resources.BaseResource):
 
     def handle_resource(self, name, value):
         if name == 'resource':
-            files = self.request.FILES
-            if files.get('resource'):
-                file_name = files.get('resource').name.encode('iso8859-1')
-                return name, {'get_file': file_name}
-            else:
-                return None, None
+            return name, {'type': value}
         else:
             return name, value
 

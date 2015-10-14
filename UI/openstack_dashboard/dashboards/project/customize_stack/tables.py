@@ -26,21 +26,21 @@ class CreateTemplate(tables.LinkAction):
     policy_rules = (("image", "add_image"),)
  
  
-class EditTemplate(tables.LinkAction):
-    name = "edit"
-    verbose_name = _("Edit Template")
-    url = "horizon:project:images:images:update"
-    classes = ("ajax-modal",)
-    icon = "pencil"
-    policy_rules = (("image", "modify_image"),)
- 
-    def allowed(self, request, image=None):
+# class EditTemplate(tables.LinkAction):
+#     name = "edit"
+#     verbose_name = _("Edit Template")
+#     url = "horizon:project:images:images:update"
+#     classes = ("ajax-modal",)
+#     icon = "pencil"
+#     policy_rules = (("image", "modify_image"),)
+#  
+#     def allowed(self, request, image=None):
 #         if image:
 #             return image.status in ("active",) and \
 #                 image.owner == request.user.tenant_id
         # We don't have bulk editing, so if there isn't an image that's
         # authorized, don't allow the action.
-        return True
+#         return True
  
 class LaunchTemplate(tables.LinkAction):
     name = "launch_template"
@@ -48,6 +48,22 @@ class LaunchTemplate(tables.LinkAction):
     url = "horizon:project:customize_stack:launch_template"
     classes = ("ajax-modal", "btn-launch")
     icon = "cloud-upload"
+    policy_rules = (("compute", "compute:create"),)
+
+    def get_link_url(self, datum):
+        args = (datum.get('name'),)
+        base_url = reverse(self.url, args=args)
+        return base_url
+
+    def allowed(self, request, image=None):
+        return True
+ 
+class Export(tables.LinkAction):
+    name = "export_template"
+    verbose_name = _("Export Template")
+    url = "horizon:project:customize_stack:export_template"
+#     classes = ("ajax-modal", "btn-launch")
+#     icon = "cloud-upload"
     policy_rules = (("compute", "compute:create"),)
 
     def get_link_url(self, datum):
@@ -93,20 +109,20 @@ class DeleteTemplate(tables.DeleteAction):
     def delete(self, request, obj_id):
         project_api.delete_template(request, obj_id)
 
-class OwnerFilter(tables.FixedFilterAction):
-    def get_fixed_buttons(self):
-        def make_dict(text, tenant, icon):
-            return dict(text=text, value=tenant, icon=icon)
-
-        buttons = [make_dict(_('Project'), 'project', 'fa-home')]
-        for button_dict in filter_tenants():
-            new_dict = button_dict.copy()
-            new_dict['value'] = new_dict['tenant']
-            buttons.append(new_dict)
-        buttons.append(make_dict(_('Shared with Me'), 'shared',
-                                 'fa-share-square-o'))
-        buttons.append(make_dict(_('Public'), 'public', 'fa-group'))
-        return buttons
+# class OwnerFilter(tables.FixedFilterAction):
+#     def get_fixed_buttons(self):
+#         def make_dict(text, tenant, icon):
+#             return dict(text=text, value=tenant, icon=icon)
+# 
+#         buttons = [make_dict(_('Project'), 'project', 'fa-home')]
+#         for button_dict in filter_tenants():
+#             new_dict = button_dict.copy()
+#             new_dict['value'] = new_dict['tenant']
+#             buttons.append(new_dict)
+#         buttons.append(make_dict(_('Shared with Me'), 'shared',
+#                                  'fa-share-square-o'))
+#         buttons.append(make_dict(_('Public'), 'public', 'fa-group'))
+#         return buttons
 
 #     def categorize(self, table, images):
 #         user_tenant_id = table.request.user.tenant_id
@@ -123,12 +139,12 @@ def get_template_name(image):
 def get_template_type(image):
     return getattr(image, "properties", {}).get("image_type", "image")
 
-def filter_tenants():
-    return getattr(settings, 'IMAGES_LIST_FILTER_TENANTS', [])
-
-@memoized
-def filter_tenant_ids():
-    return map(lambda ft: ft['tenant'], filter_tenants())
+# def filter_tenants():
+#     return getattr(settings, 'IMAGES_LIST_FILTER_TENANTS', [])
+# 
+# @memoized
+# def filter_tenant_ids():
+#     return map(lambda ft: ft['tenant'], filter_tenants())
 
 # def get_image_categories(im, user_tenant_id):
 #     categories = []
@@ -214,6 +230,6 @@ class TemplatesTable(tables.DataTable):
 #         table_actions = ()
         launch_actions = ()
         launch_actions = (LaunchTemplate,) + launch_actions
-        row_actions = launch_actions + (EditTemplate, DeleteTemplate,)
+        row_actions = launch_actions + (DeleteTemplate, Export)
 #         row_actions = ()
 #         pagination_param = "image_marker"

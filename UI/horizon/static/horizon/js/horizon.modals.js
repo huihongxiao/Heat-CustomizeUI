@@ -227,21 +227,22 @@ horizon.addInitFunction(horizon.modals.init = function() {
       }
     }
 
-    if (form_id.substring(0,10)=='heat_save_' || form_id == 'launch_draft') {
-      var attached_files = cs_get_files();
-      formData.append('canvas_data', cs_get_canvas_data());
-      for(file_name in attached_files) {
-        formData.append(file_name, attached_files[file_name]);
+    if (form_id) {
+      if (form_id.substring(0,10)=='heat_save_' || form_id == 'launch_draft') {
+        var attached_files = cs_get_files();
+        formData.append('canvas_data', cs_get_canvas_data());
+        for(file_name in attached_files) {
+          formData.append(file_name, attached_files[file_name]);
+        }
       }
-    }
-
-    if (form_id == 'modify_resource' || form_id == 'edit_resource') {
-      if ($('#id_resource_name') && $('#id_resource_name').val() != '') {
-        cs_add_attached_files($('#id_resource_name').val());
-      }
-      formData.append('res_name_dup', cs_check_dup(form_id));
-      if (form_id == 'edit_resource' || cs_file_selected()) {
-        formData.append('file_widget_content', cs_get_file_widget_content());
+      if (form_id == 'modify_resource' || form_id == 'edit_resource') {
+        if ($('#id_resource_name') && $('#id_resource_name').val() != '') {
+          cs_add_attached_files($('#id_resource_name').val());
+        }
+        formData.append('res_name_dup', cs_check_dup(form_id));
+        if (form_id == 'edit_resource' || cs_file_selected()) {
+          formData.append('file_widget_content', cs_get_file_widget_content());
+        }
       }
     }
 
